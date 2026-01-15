@@ -3,37 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的雲端書庫 V5.1 - 備份安全版</title>
+    <title>我的雲端書庫 V5.2 - 完整引導版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 10px; }
-        
-        /* 備份按鈕區 */
         .backup-zone { text-align: right; margin-bottom: 10px; }
         .btn-secondary { background:#6c757d; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size: 12px; margin-left: 5px; }
-        
         .search-section { margin-bottom: 20px; }
         #searchInput { width: 100%; border: 2px solid #007bff; padding: 12px; border-radius: 25px; box-sizing: border-box; font-size: 16px; }
-
         .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
         .form-full { grid-column: 1 / -1; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
         input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-        
         .btn-add { grid-column: 1 / -1; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 5px; }
-        
         .filter-info { background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: none; justify-content: space-between; align-items: center; border: 1px solid #ffeeba; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
         th { background-color: #f8f9fa; }
-        
         .clickable { color: #007bff; cursor: pointer; text-decoration: underline; }
         .tag-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #e9ecef; margin-right: 4px; cursor: pointer; border: 1px solid #ccc; }
         .note-text { font-size: 11px; color: #666; font-style: italic; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
         @media (max-width: 600px) {
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
@@ -62,20 +53,20 @@
 
     <div class="form-group">
         <div><label>購買狀態</label><select id="buyStatus"><option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option></select></div>
-        <div><label>書名 (必填)</label><input type="text" id="title"></div>
-        <div><label>作者</label><input list="authorList" id="author"><datalist id="authorList"></datalist></div>
-        <div><label>內文語言</label><input list="langList" id="language"><datalist id="langList"></datalist></div>
-        <div><label>書籍類型</label><input list="catList" id="bookCategory"><datalist id="catList"></datalist></div>
+        <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例如：哈利波特"></div>
+        <div><label>作者</label><input list="authorList" id="author" placeholder="例如：J.K. 羅琳"><datalist id="authorList"></datalist></div>
+        <div><label>內文語言</label><input list="langList" id="language" placeholder="例如：繁體中文、日文"><datalist id="langList"></datalist></div>
+        <div><label>書籍類型</label><input list="catList" id="bookCategory" placeholder="例如：小說、漫畫、同人誌"><datalist id="catList"></datalist></div>
         <div><label>形式</label><select id="format" onchange="toggleEPlatform()"><option value="實體書">實體書</option><option value="電子書">電子書</option></select></div>
         
-        <div id="ePlatformDiv" style="display:none;"><label>電子書平台 (必填)</label><input list="platList" id="ePlatform"><datalist id="platList"></datalist></div>
+        <div id="ePlatformDiv" style="display:none;"><label>電子書平台 (必填)</label><input list="platList" id="ePlatform" placeholder="例如：Kindle、BOOK☆WALKER"><datalist id="platList"></datalist></div>
         
         <div><label>集數</label><input type="number" id="volume" value="1"></div>
         <div><label>作品狀態</label><select id="workStatus"><option>正文完結</option><option>正文未完結</option><option>番外完結</option><option>番外未完結</option><option>坑</option></select></div>
-        <div><label>閱讀狀態</label><input type="text" id="readProgress"></div>
-        <div><label>標籤 (逗號隔開)</label><input type="text" id="tags"></div>
-        <div><label>關聯 ID</label><input type="text" id="relationId"></div>
-        <div class="form-full"><label>備註</label><textarea id="notes" rows="1"></textarea></div>
+        <div><label>閱讀狀態</label><input type="text" id="readProgress" placeholder="例如：未讀、已看完、已看部分"></div>
+        <div><label>標籤 (逗號隔開)</label><input type="text" id="tags" placeholder="例如：推理, 奇幻, BL"></div>
+        <div><label>關聯 ID</label><input type="text" id="relationId" placeholder="例如：HP, 盜筆系列"></div>
+        <div class="form-full"><label>備註</label><textarea id="notes" rows="1" placeholder="可以記錄是否有購買其他版本、是否有外傳前傳關聯作品......等等"></textarea></div>
         
         <button class="btn-add" onclick="checkAndSave()">儲存書單</button>
     </div>
@@ -101,8 +92,8 @@
 </div>
 
 <script>
-    // ⚠️ 務必換成你部署後的網頁應用程式 URL
-    const API_URL = "你的_GOOGLE_APPS_SCRIPT_URL"; 
+    // ⚠️ 請確保這行填入你的 API URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec"; 
     
     let allBooks = []; 
     let currentFilter = { key: null, value: null };
@@ -112,16 +103,13 @@
         document.getElementById('ePlatformDiv').style.display = (format === '電子書') ? 'block' : 'none';
     }
 
-    // 檢查重複書名 (防呆)
     function checkAndSave() {
         const title = document.getElementById('title').value;
         const language = document.getElementById('language').value || '未分類';
         if (!title) return alert("書名必填！");
-
         if (document.getElementById('format').value === '電子書' && !document.getElementById('ePlatform').value) {
             return alert("請輸入電子書平台名稱！");
         }
-
         const isDuplicate = allBooks.some(b => b.title === title && b.language === language);
         if (isDuplicate) {
             if (!confirm(`⚠️ 書庫中已存在《${title}》(${language}版)。\n確定要覆蓋現有的資料嗎？`)) return;
@@ -147,7 +135,6 @@
             relationId: document.getElementById('relationId').value || '-',
             notes: document.getElementById('notes').value || ''
         };
-
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
             alert("✅ 同步成功！");
@@ -173,7 +160,6 @@
         showLoading(false);
     }
 
-    // --- 備份功能 ---
     function exportBackup() {
         if (allBooks.length === 0) return alert("沒有資料可匯出");
         const dataStr = JSON.stringify(allBooks, null, 2);
@@ -196,7 +182,6 @@
                     showLoading(true);
                     for (const book of importedData) {
                         book.action = 'save';
-                        // 轉換 tag 陣列回字串以符合 save 邏輯
                         book.tags = Array.isArray(book.tags) ? book.tags.join(',') : book.tags;
                         await fetch(API_URL, { method: 'POST', body: JSON.stringify(book) });
                     }
@@ -213,9 +198,7 @@
         const tbody = document.getElementById('bookTableBody');
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         tbody.innerHTML = '';
-        
         let displayBooks = allBooks;
-
         if (currentFilter.key) {
             displayBooks = displayBooks.filter(b => {
                 if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value);
@@ -223,7 +206,6 @@
                 return b[map[currentFilter.key]] === currentFilter.value;
             });
         }
-
         if (searchTerm) {
             displayBooks = displayBooks.filter(b => 
                 b.title.toLowerCase().includes(searchTerm) || 
@@ -233,7 +215,6 @@
                 b.tags.some(t => t.toLowerCase().includes(searchTerm))
             );
         }
-
         displayBooks.forEach(book => {
             const row = `<tr>
                 <td data-label="購買"><span class="clickable" onclick="setFilter('購買狀態','${book.buyStatus}')">${book.buyStatus}</span></td>
@@ -266,7 +247,6 @@
         const platforms = [...new Set(allBooks.map(b => b.ePlatform))].filter(p => p !== '-');
         const langs = [...new Set(allBooks.map(b => b.language))];
         const cats = [...new Set(allBooks.map(b => b.bookCategory))];
-        
         document.getElementById('authorList').innerHTML = authors.map(a => `<option value="${a}">`).join('');
         document.getElementById('platList').innerHTML = platforms.map(p => `<option value="${p}">`).join('');
         document.getElementById('langList').innerHTML = langs.map(l => `<option value="${l}">`).join('');
