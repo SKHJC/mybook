@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的雲端書庫 V5</title>
+    <title>我的雲端書庫 V5.1 - 備份安全版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; font-size: 24px; }
+        h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 10px; }
         
+        /* 備份按鈕區 */
+        .backup-zone { text-align: right; margin-bottom: 10px; }
+        .btn-secondary { background:#6c757d; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size: 12px; margin-left: 5px; }
+        
+        .search-section { margin-bottom: 20px; }
+        #searchInput { width: 100%; border: 2px solid #007bff; padding: 12px; border-radius: 25px; box-sizing: border-box; font-size: 16px; }
+
         .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
         .form-full { grid-column: 1 / -1; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
         input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
         
-        .search-section { margin-bottom: 20px; }
-        #searchInput { border: 2px solid #007bff; padding: 10px; border-radius: 25px; }
-
         .btn-add { grid-column: 1 / -1; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 5px; }
-        .btn-add:hover { background-color: #218838; }
         
         .filter-info { background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: none; justify-content: space-between; align-items: center; border: 1px solid #ffeeba; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
@@ -42,13 +45,19 @@
 </head>
 <body>
 
-<div id="loading" class="loading-overlay">☁️ 同步中...</div>
+<div id="loading" class="loading-overlay">☁️ 同步中，請勿關閉視窗...</div>
 
 <div class="container">
-    <h1>📚 我的雲端書庫 V5</h1>
+    <h1>📚 私人雲端圖書館</h1>
+
+    <div class="backup-zone">
+        <button class="btn-secondary" onclick="exportBackup()">💾 匯出 JSON 備份</button>
+        <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📤 匯入備份檔</button>
+        <input type="file" id="importFile" style="display:none" onchange="importBackup(event)">
+    </div>
     
     <div class="search-section">
-        <input type="text" id="searchInput" placeholder="🔍 快速搜尋書名、作者、標籤或平台..." oninput="renderTable()">
+        <input type="text" id="searchInput" placeholder="🔍 搜尋書名、作者、標籤、平台或備註..." oninput="renderTable()">
     </div>
 
     <div class="form-group">
@@ -92,32 +101,30 @@
 </div>
 
 <script>
+    // ⚠️ 務必換成你部署後的網頁應用程式 URL
     const API_URL = "你的_GOOGLE_APPS_SCRIPT_URL"; 
+    
     let allBooks = []; 
     let currentFilter = { key: null, value: null };
 
-    // 1. 電子書平台顯示切換
     function toggleEPlatform() {
         const format = document.getElementById('format').value;
         document.getElementById('ePlatformDiv').style.display = (format === '電子書') ? 'block' : 'none';
     }
 
-    // 2. 防呆提醒邏輯
+    // 檢查重複書名 (防呆)
     function checkAndSave() {
         const title = document.getElementById('title').value;
         const language = document.getElementById('language').value || '未分類';
         if (!title) return alert("書名必填！");
 
-        // 如果是電子書，平台必填
         if (document.getElementById('format').value === '電子書' && !document.getElementById('ePlatform').value) {
             return alert("請輸入電子書平台名稱！");
         }
 
         const isDuplicate = allBooks.some(b => b.title === title && b.language === language);
         if (isDuplicate) {
-            if (!confirm(`⚠️ 書庫中已存在《${title}》(${language}版)。\n確定要覆蓋現有的書籍資訊嗎？`)) {
-                return; // 使用者選取消，停止執行
-            }
+            if (!confirm(`⚠️ 書庫中已存在《${title}》(${language}版)。\n確定要覆蓋現有的資料嗎？`)) return;
         }
         saveToCloud();
     }
@@ -166,7 +173,42 @@
         showLoading(false);
     }
 
-    // 3. 搜尋與表格渲染
+    // --- 備份功能 ---
+    function exportBackup() {
+        if (allBooks.length === 0) return alert("沒有資料可匯出");
+        const dataStr = JSON.stringify(allBooks, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `書庫備份_${new Date().toISOString().slice(0,10)}.json`;
+        link.click();
+    }
+
+    function importBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (confirm(`準備匯入 ${importedData.length} 筆資料到雲端？`)) {
+                    showLoading(true);
+                    for (const book of importedData) {
+                        book.action = 'save';
+                        // 轉換 tag 陣列回字串以符合 save 邏輯
+                        book.tags = Array.isArray(book.tags) ? book.tags.join(',') : book.tags;
+                        await fetch(API_URL, { method: 'POST', body: JSON.stringify(book) });
+                    }
+                    alert("匯入完成！");
+                    loadFromCloud();
+                }
+            } catch (err) { alert("匯入失敗，格式不符"); }
+            showLoading(false);
+        };
+        reader.readAsText(file);
+    }
+
     function renderTable() {
         const tbody = document.getElementById('bookTableBody');
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -174,7 +216,6 @@
         
         let displayBooks = allBooks;
 
-        // 套用篩選 (類別/作者/標籤)
         if (currentFilter.key) {
             displayBooks = displayBooks.filter(b => {
                 if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value);
@@ -183,12 +224,12 @@
             });
         }
 
-        // 套用搜尋框關鍵字
         if (searchTerm) {
             displayBooks = displayBooks.filter(b => 
                 b.title.toLowerCase().includes(searchTerm) || 
                 b.author.toLowerCase().includes(searchTerm) || 
                 b.ePlatform.toLowerCase().includes(searchTerm) ||
+                b.notes.toLowerCase().includes(searchTerm) ||
                 b.tags.some(t => t.toLowerCase().includes(searchTerm))
             );
         }
@@ -197,26 +238,13 @@
             const row = `<tr>
                 <td data-label="購買"><span class="clickable" onclick="setFilter('購買狀態','${book.buyStatus}')">${book.buyStatus}</span></td>
                 <td data-label="書名/作者"><strong>${book.title}</strong><br><small class="clickable" onclick="setFilter('作者','${book.author}')">${book.author}</small></td>
-                <td data-label="規格/語言">${book.format} (v${book.volume})<br><small class="clickable" onclick="setFilter('語言','${book.language}')">${book.language}</small></td>
+                <td data-label="規格/語言">${book.format} (v${book.volume})<br><small class="clickable" onclick="setFilter('語言','${book.language}')">${book.language}</span></td>
                 <td data-label="平台/備註"><span class="clickable" onclick="setFilter('平台','${book.ePlatform}')">${book.ePlatform}</span><div class="note-text" title="${book.notes}">${book.notes}</div></td>
                 <td data-label="類型/標籤"><small class="clickable" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</small><br>${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}</td>
                 <td data-label="關聯ID"><span class="clickable" onclick="setFilter('關聯ID','${book.relationId}')">${book.relationId}</span></td>
             </tr>`;
             tbody.innerHTML += row;
         });
-    }
-
-    // 4. 更新自動記憶清單
-    function updateDatalists() {
-        const authors = [...new Set(allBooks.map(b => b.author))];
-        const platforms = [...new Set(allBooks.map(b => b.ePlatform))].filter(p => p !== '-');
-        const langs = [...new Set(allBooks.map(b => b.language))];
-        const cats = [...new Set(allBooks.map(b => b.bookCategory))];
-        
-        document.getElementById('authorList').innerHTML = authors.map(a => `<option value="${a}">`).join('');
-        document.getElementById('platList').innerHTML = platforms.map(p => `<option value="${p}">`).join('');
-        document.getElementById('langList').innerHTML = langs.map(l => `<option value="${l}">`).join('');
-        document.getElementById('catList').innerHTML = cats.map(c => `<option value="${c}">`).join('');
     }
 
     function setFilter(key, value) {
@@ -231,6 +259,18 @@
         currentFilter = { key: null, value: null };
         document.getElementById('filterInfo').style.display = 'none';
         renderTable();
+    }
+
+    function updateDatalists() {
+        const authors = [...new Set(allBooks.map(b => b.author))];
+        const platforms = [...new Set(allBooks.map(b => b.ePlatform))].filter(p => p !== '-');
+        const langs = [...new Set(allBooks.map(b => b.language))];
+        const cats = [...new Set(allBooks.map(b => b.bookCategory))];
+        
+        document.getElementById('authorList').innerHTML = authors.map(a => `<option value="${a}">`).join('');
+        document.getElementById('platList').innerHTML = platforms.map(p => `<option value="${p}">`).join('');
+        document.getElementById('langList').innerHTML = langs.map(l => `<option value="${l}">`).join('');
+        document.getElementById('catList').innerHTML = cats.map(c => `<option value="${c}">`).join('');
     }
 
     function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
