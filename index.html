@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的雲端書庫 V5.2 - 完整引導版</title>
+    <title>我的雲端書庫 V5.3 - 排序與靈活位置版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -24,6 +24,7 @@
         th { background-color: #f8f9fa; }
         .clickable { color: #007bff; cursor: pointer; text-decoration: underline; }
         .tag-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #e9ecef; margin-right: 4px; cursor: pointer; border: 1px solid #ccc; }
+        .format-pill { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
         .note-text { font-size: 11px; color: #666; font-style: italic; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         @media (max-width: 600px) {
             table, thead, tbody, th, td, tr { display: block; }
@@ -48,7 +49,7 @@
     </div>
     
     <div class="search-section">
-        <input type="text" id="searchInput" placeholder="🔍 搜尋書名、作者、標籤、平台或備註..." oninput="renderTable()">
+        <input type="text" id="searchInput" placeholder="🔍 搜尋書名、作者、標籤、位置或備註..." oninput="renderTable()">
     </div>
 
     <div class="form-group">
@@ -57,9 +58,10 @@
         <div><label>作者</label><input list="authorList" id="author" placeholder="例：J.K. 羅琳"><datalist id="authorList"></datalist></div>
         <div><label>內文語言</label><input list="langList" id="language" placeholder="繁體中文、日文"><datalist id="langList"></datalist></div>
         <div><label>書籍類型</label><input list="catList" id="bookCategory" placeholder="例：小說、漫畫、同人誌"><datalist id="catList"></datalist></div>
-        <div><label>形式</label><select id="format" onchange="toggleEPlatform()"><option value="實體書">實體書</option><option value="電子書">電子書</option></select></div>
         
-        <div id="ePlatformDiv" style="display:none;"><label>電子書平台 (必填)</label><input list="platList" id="ePlatform" placeholder="例如：Kindle、BOOK☆WALKER"><datalist id="platList"></datalist></div>
+        <div><label>形式 (例：實體書, 電子書)</label><input list="formatList" id="format" placeholder="例：實體書, 電子書"><datalist id="formatList"><option value="實體書"><option value="電子書"></datalist></div>
+        
+        <div><label>書籍位置</label><input list="platList" id="ePlatform" placeholder="例：老家、租屋處、Kindle"><datalist id="platList"></datalist></div>
         
         <div><label>集數</label><input type="number" id="volume" value="1"></div>
         <div><label>作品狀態</label><select id="workStatus"><option>正文完結</option><option>正文未完結</option><option>番外完結</option><option>番外未完結</option><option>坑</option></select></div>
@@ -82,7 +84,7 @@
                 <th>購買</th>
                 <th>書名/作者</th>
                 <th>規格/語言</th>
-                <th>平台/備註</th>
+                <th>位置/備註</th>
                 <th>類型/標籤</th>
                 <th>關聯ID</th>
             </tr>
@@ -92,24 +94,18 @@
 </div>
 
 <script>
-    // ⚠️ 請確保這行填入你的 API URL
     const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec"; 
     
     let allBooks = []; 
     let currentFilter = { key: null, value: null };
 
-    function toggleEPlatform() {
-        const format = document.getElementById('format').value;
-        document.getElementById('ePlatformDiv').style.display = (format === '電子書') ? 'block' : 'none';
-    }
+    // 這裡我們拿掉 toggleEPlatform，因為書籍位置現在永遠顯示
 
     function checkAndSave() {
         const title = document.getElementById('title').value;
         const language = document.getElementById('language').value || '未分類';
         if (!title) return alert("書名必填！");
-        if (document.getElementById('format').value === '電子書' && !document.getElementById('ePlatform').value) {
-            return alert("請輸入電子書平台名稱！");
-        }
+        
         const isDuplicate = allBooks.some(b => b.title === title && b.language === language);
         if (isDuplicate) {
             if (!confirm(`⚠️ 書庫中已存在《${title}》(${language}版)。\n確定要覆蓋現有的資料嗎？`)) return;
@@ -150,10 +146,15 @@
             const data = await response.json();
             allBooks = data.map(row => ({
                 buyStatus: row[0], title: row[1], author: row[2], language: row[3], bookCategory: row[4],
-                format: row[5], ePlatform: row[6], volume: row[7], workStatus: row[8], readProgress: row[9],
+                format: typeof row[5] === 'string' ? row[5].split(',').map(s=>s.trim()).filter(Boolean) : [row[5]],
+                ePlatform: row[6], volume: row[7], workStatus: row[8], readProgress: row[9],
                 tags: typeof row[10] === 'string' ? row[10].split(',').map(s=>s.trim()).filter(Boolean) : [],
                 relationId: row[11], notes: row[12]
             }));
+            
+            // 調整 3: 加入書名排序邏輯 (依拼音/字母排序)
+            allBooks.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hant'));
+
             updateDatalists();
             renderTable();
         } catch (e) { console.error(e); }
@@ -183,6 +184,7 @@
                     for (const book of importedData) {
                         book.action = 'save';
                         book.tags = Array.isArray(book.tags) ? book.tags.join(',') : book.tags;
+                        book.format = Array.isArray(book.format) ? book.format.join(',') : book.format;
                         await fetch(API_URL, { method: 'POST', body: JSON.stringify(book) });
                     }
                     alert("匯入完成！");
@@ -202,7 +204,8 @@
         if (currentFilter.key) {
             displayBooks = displayBooks.filter(b => {
                 if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value);
-                const map = {'作者':'author', '語言':'language', '類型':'bookCategory', '關聯ID':'relationId', '購買狀態':'buyStatus', '平台':'ePlatform'};
+                if (currentFilter.key === '形式') return b.format.includes(currentFilter.value);
+                const map = {'作者':'author', '語言':'language', '類型':'bookCategory', '關聯ID':'relationId', '購買狀態':'buyStatus', '位置':'ePlatform'};
                 return b[map[currentFilter.key]] === currentFilter.value;
             });
         }
@@ -219,8 +222,11 @@
             const row = `<tr>
                 <td data-label="購買"><span class="clickable" onclick="setFilter('購買狀態','${book.buyStatus}')">${book.buyStatus}</span></td>
                 <td data-label="書名/作者"><strong>${book.title}</strong><br><small class="clickable" onclick="setFilter('作者','${book.author}')">${book.author}</small></td>
-                <td data-label="規格/語言">${book.format} (v${book.volume})<br><small class="clickable" onclick="setFilter('語言','${book.language}')">${book.language}</span></td>
-                <td data-label="平台/備註"><span class="clickable" onclick="setFilter('平台','${book.ePlatform}')">${book.ePlatform}</span><div class="note-text" title="${book.notes}">${book.notes}</div></td>
+                <td data-label="規格/語言">
+                    ${book.format.map(f => `<span class="tag-pill format-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')} (v${book.volume})<br>
+                    <small class="clickable" onclick="setFilter('語言','${book.language}')">${book.language}</span>
+                </td>
+                <td data-label="位置/備註"><span class="clickable" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span><div class="note-text" title="${book.notes}">${book.notes}</div></td>
                 <td data-label="類型/標籤"><small class="clickable" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</small><br>${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}</td>
                 <td data-label="關聯ID"><span class="clickable" onclick="setFilter('關聯ID','${book.relationId}')">${book.relationId}</span></td>
             </tr>`;
@@ -244,13 +250,16 @@
 
     function updateDatalists() {
         const authors = [...new Set(allBooks.map(b => b.author))];
-        const platforms = [...new Set(allBooks.map(b => b.ePlatform))].filter(p => p !== '-');
+        const positions = [...new Set(allBooks.map(b => b.ePlatform))].filter(p => p !== '-');
         const langs = [...new Set(allBooks.map(b => b.language))];
         const cats = [...new Set(allBooks.map(b => b.bookCategory))];
+        const formats = [...new Set(allBooks.flatMap(b => b.format))];
+        
         document.getElementById('authorList').innerHTML = authors.map(a => `<option value="${a}">`).join('');
-        document.getElementById('platList').innerHTML = platforms.map(p => `<option value="${p}">`).join('');
+        document.getElementById('platList').innerHTML = positions.map(p => `<option value="${p}">`).join('');
         document.getElementById('langList').innerHTML = langs.map(l => `<option value="${l}">`).join('');
         document.getElementById('catList').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+        document.getElementById('formatList').innerHTML += formats.map(f => `<option value="${f}">`).join('');
     }
 
     function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
@@ -258,4 +267,3 @@
 </script>
 </body>
 </html>
-
