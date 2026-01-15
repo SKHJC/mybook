@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的雲端書庫 V5.8 - 配置優化版</title>
+    <title>我的雲端書庫 V5.9 - 全功能記憶版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -79,9 +79,10 @@
         </div>
 
         <div><label>作品狀態</label><select id="workStatus"><option>正文完結</option><option>正文未完結</option><option>番外完結</option><option>番外未完結</option><option>坑</option></select></div>
-        <div><label>閱讀狀態</label><input type="text" id="readProgress" placeholder="例：未讀、已看完"></div>
-        <div><label>標籤 (逗號隔開)</label><input type="text" id="tags" placeholder="例：推理, 奇幻"></div>
-        <div><label>關聯 ID</label><input type="text" id="relationId" placeholder="例：HP"></div>
+        <div><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀、已看完"><datalist id="readList"></datalist></div>
+        <div><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理, 奇幻"><datalist id="tagMemoryList"></datalist></div>
+        <div><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
+        
         <div class="form-full"><label>備註</label><textarea id="notes" rows="2" placeholder="詳細備註..."></textarea></div>
         <button class="btn-add" onclick="checkAndSave()">儲存書單至雲端</button>
     </div>
@@ -116,8 +117,7 @@
     function handleSingleVolume(cb) {
         const volInput = document.getElementById('volume');
         if (cb.checked) {
-            volInput.value = 1;
-            volInput.disabled = true;
+            volInput.value = 1; volInput.disabled = true;
         } else {
             volInput.disabled = false;
         }
@@ -205,9 +205,7 @@
         }
 
         displayBooks.forEach(book => {
-            // 處理集數顯示，若是數字則加上"集"
             const volDisplay = book.volume.toString().includes('(全)') ? book.volume : book.volume + '集';
-
             const row = `<tr>
                 <td data-label="閱讀狀態">
                     <span class="clickable" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span>
@@ -244,8 +242,7 @@
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.href = url;
-        link.download = `書庫備份_${new Date().toISOString().slice(0,10)}.json`;
+        link.href = url; link.download = `書庫備份_${new Date().toISOString().slice(0,10)}.json`;
         link.click();
     }
 
@@ -264,8 +261,7 @@
                         book.format = Array.isArray(book.format) ? book.format.join(',') : book.format;
                         await fetch(API_URL, { method: 'POST', body: JSON.stringify(book) });
                     }
-                    alert("匯入完成！");
-                    loadFromCloud();
+                    alert("匯入完成！"); loadFromCloud();
                 }
             } catch (err) { alert("匯入失敗"); }
             showLoading(false);
@@ -293,11 +289,21 @@
         const langs = [...new Set(allBooks.map(b => b.language))];
         const cats = [...new Set(allBooks.map(b => b.bookCategory))];
         const formats = [...new Set(allBooks.flatMap(b => b.format))];
+        // 新增：補回這三項的記憶功能
+        const readStats = [...new Set(allBooks.map(b => b.readProgress))];
+        const allTags = [...new Set(allBooks.flatMap(b => b.tags))];
+        const relIds = [...new Set(allBooks.map(b => b.relationId))].filter(id => id !== '-');
+
         document.getElementById('authorList').innerHTML = authors.map(a => `<option value="${a}">`).join('');
         document.getElementById('platList').innerHTML = positions.map(p => `<option value="${p}">`).join('');
         document.getElementById('langList').innerHTML = langs.map(l => `<option value="${l}">`).join('');
         document.getElementById('catList').innerHTML = cats.map(c => `<option value="${c}">`).join('');
         document.getElementById('formatList').innerHTML = formats.map(f => `<option value="${f}">`).join('');
+        
+        // 渲染補回的選單
+        document.getElementById('readList').innerHTML = readStats.map(s => `<option value="${s}">`).join('');
+        document.getElementById('tagMemoryList').innerHTML = allTags.map(t => `<option value="${t}">`).join('');
+        document.getElementById('relList').innerHTML = relIds.map(id => `<option value="${id}">`).join('');
     }
 
     function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
