@@ -3,36 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的雲端書庫 V4</title>
+    <title>我的雲端書庫 V4.1</title>
     <style>
-        /* 基礎美化 */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #333; font-size: 24px; }
-        
-        /* 輸入區網格佈局 */
         .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
         input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-        
-        /* 按鈕樣式 */
         .btn-add { grid-column: 1 / -1; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 5px; }
-        .btn-add:hover { background-color: #0056b3; }
-        
-        /* 篩選與讀取狀態 */
-        .filter-info { background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: none; justify-content: space-between; align-items: center; border: 1px solid #ffeeba; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
-        
-        /* 表格樣式 */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
         th { background-color: #f8f9fa; }
-        
-        /* 可點擊元素 */
         .clickable { color: #007bff; cursor: pointer; text-decoration: underline; }
         .tag-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #e9ecef; margin-right: 4px; cursor: pointer; border: 1px solid #ccc; }
+        .buy-status { font-weight: bold; color: #d9534f; } /* 購買狀態標色 */
 
-        /* 手機版適配 (RWD) */
         @media (max-width: 600px) {
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
@@ -50,20 +37,29 @@
     <h1>📚 私人雲端圖書館</h1>
     
     <div class="form-group">
+        <div>
+            <label>購買狀態</label>
+            <select id="buyStatus">
+                <option>已買完</option>
+                <option>未買完</option>
+                <option>未出完未買完</option>
+                <option>未出完已買到進度</option>
+            </select>
+        </div>
         <div><label>書名 (必填)</label><input type="text" id="title"></div>
-        <div><label>作者</label><input type="text" id="author"></div>
+        <div><label>作者</label><input list="authorList" id="author"><datalist id="authorList"></datalist></div>
         <div><label>內文語言</label><input list="langList" id="language"><datalist id="langList"></datalist></div>
         <div><label>書籍類型</label><input list="catList" id="bookCategory"><datalist id="catList"></datalist></div>
         <div><label>形式</label><select id="format"><option>實體書</option><option>電子書</option></select></div>
         <div><label>集數</label><input type="number" id="volume" value="1"></div>
         <div><label>作品狀態</label><select id="workStatus"><option>正文完結</option><option>正文未完結</option><option>番外完結</option><option>番外未完結</option><option>坑</option></select></div>
-        <div><label>閱讀狀態</label><input type="text" id="readProgress" placeholder="如：已看完"></div>
+        <div><label>閱讀狀態</label><input type="text" id="readProgress"></div>
         <div><label>標籤 (逗號隔開)</label><input type="text" id="tags" placeholder="推理, BL"></div>
         <div><label>關聯 ID</label><input type="text" id="relationId"></div>
         <button class="btn-add" onclick="saveToCloud()">儲存至雲端並同步</button>
     </div>
 
-    <div id="filterInfo" class="filter-info">
+    <div id="filterInfo" class="filter-info" style="display:none; background:#fff3cd; padding:10px; border:1px solid #ffeeba; border-radius:5px; margin-bottom:10px; justify-content:space-between;">
         <span id="filterText"></span>
         <button onclick="clearFilter()">清除篩選</button>
     </div>
@@ -71,6 +67,7 @@
     <table>
         <thead>
             <tr>
+                <th>購買狀態</th>
                 <th>書名/作者</th>
                 <th>規格/語言</th>
                 <th>狀態/進度</th>
@@ -83,21 +80,18 @@
 </div>
 
 <script>
-    // 這裡貼上你剛剛生成的 URL
-    const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec";
+    const API_URL = "你的_GOOGLE_APPS_SCRIPT_URL"; // 記得填入你的 URL
     
-    let allBooks = []; // 儲存從雲端抓下來的所有書籍
+    let allBooks = []; 
     let currentFilter = { key: null, value: null };
-
-    // --- 雲端操作功能 ---
 
     async function saveToCloud() {
         const title = document.getElementById('title').value;
         if (!title) return alert("書名必填！");
-
         showLoading(true);
         const bookData = {
             action: 'save',
+            buyStatus: document.getElementById('buyStatus').value,
             title: title,
             author: document.getElementById('author').value || '未知',
             language: document.getElementById('language').value || '未分類',
@@ -109,16 +103,11 @@
             tags: document.getElementById('tags').value,
             relationId: document.getElementById('relationId').value || '-'
         };
-
         try {
-            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
-            if (response.ok) {
-                alert("✅ 已成功同步至 Google 試算表！");
-                loadFromCloud(); // 重新整理列表
-            }
-        } catch (e) {
-            alert("❌ 儲存失敗，請檢查網路或 API 設定：" + e);
-        }
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
+            alert("✅ 同步成功！");
+            loadFromCloud();
+        } catch (e) { alert("❌ 失敗：" + e); }
         showLoading(false);
     }
 
@@ -127,40 +116,30 @@
         try {
             const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'read' }) });
             const data = await response.json();
-            
-            // 轉換資料格式 (從 Google 的陣列轉回物件)
             allBooks = data.map(row => ({
-                title: row[0], author: row[1], language: row[2], bookCategory: row[3],
-                format: row[4], volume: row[5], workStatus: row[6], readProgress: row[7],
-                tags: typeof row[8] === 'string' ? row[8].split(',').map(s=>s.trim()).filter(Boolean) : [],
-                relationId: row[9]
+                buyStatus: row[0], title: row[1], author: row[2], language: row[3], bookCategory: row[4],
+                format: row[5], volume: row[6], workStatus: row[7], readProgress: row[8],
+                tags: typeof row[9] === 'string' ? row[9].split(',').map(s=>s.trim()).filter(Boolean) : [],
+                relationId: row[10]
             }));
-            
             updateDatalists();
             renderTable();
-        } catch (e) {
-            console.error("讀取失敗:", e);
-        }
+        } catch (e) { console.error(e); }
         showLoading(false);
     }
-
-    // --- 介面顯示功能 ---
 
     function renderTable() {
         const tbody = document.getElementById('bookTableBody');
         tbody.innerHTML = '';
-        
-        let displayBooks = allBooks;
-        if (currentFilter.key) {
-            displayBooks = allBooks.filter(b => {
-                if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value);
-                const map = {'作者':'author', '語言':'language', '類型':'bookCategory', '關聯ID':'relationId'};
-                return b[map[currentFilter.key]] === currentFilter.value;
-            });
-        }
+        let displayBooks = currentFilter.key ? allBooks.filter(b => {
+            if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value);
+            const map = {'作者':'author', '語言':'language', '類型':'bookCategory', '關聯ID':'relationId', '購買狀態':'buyStatus'};
+            return b[map[currentFilter.key]] === currentFilter.value;
+        }) : allBooks;
 
         displayBooks.forEach(book => {
             const row = `<tr>
+                <td data-label="購買狀態"><span class="clickable buy-status" onclick="setFilter('購買狀態','${book.buyStatus}')">${book.buyStatus}</span></td>
                 <td data-label="書名/作者"><strong>${book.title}</strong><br><span class="clickable" onclick="setFilter('作者','${book.author}')">${book.author}</span></td>
                 <td data-label="規格/語言">${book.format} (第 ${book.volume} 集)<br>內文：<span class="clickable" onclick="setFilter('語言','${book.language}')">${book.language}</span></td>
                 <td data-label="狀態/進度">${book.workStatus}<br>進度：${book.readProgress}</td>
@@ -188,17 +167,14 @@
     function updateDatalists() {
         const langs = [...new Set(allBooks.map(b => b.language))];
         const cats = [...new Set(allBooks.map(b => b.bookCategory))];
+        const authors = [...new Set(allBooks.map(b => b.author))]; // 新增作者記憶
         document.getElementById('langList').innerHTML = langs.map(l => `<option value="${l}">`).join('');
         document.getElementById('catList').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+        document.getElementById('authorList').innerHTML = authors.map(a => `<option value="${a}">`).join('');
     }
 
-    function showLoading(show) {
-        document.getElementById('loading').style.display = show ? 'flex' : 'none';
-    }
-
-    // 網頁開啟後自動載入資料
+    function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
     loadFromCloud();
 </script>
-
 </body>
 </html>
