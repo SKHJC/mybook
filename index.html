@@ -53,19 +53,19 @@
 
     <div class="form-group">
         <div><label>購買狀態</label><select id="buyStatus"><option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option></select></div>
-        <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例如：哈利波特"></div>
-        <div><label>作者</label><input list="authorList" id="author" placeholder="例如：J.K. 羅琳"><datalist id="authorList"></datalist></div>
-        <div><label>內文語言</label><input list="langList" id="language" placeholder="例如：繁體中文、日文"><datalist id="langList"></datalist></div>
-        <div><label>書籍類型</label><input list="catList" id="bookCategory" placeholder="例如：小說、漫畫、同人誌"><datalist id="catList"></datalist></div>
+        <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
+        <div><label>作者</label><input list="authorList" id="author" placeholder="例：J.K. 羅琳"><datalist id="authorList"></datalist></div>
+        <div><label>內文語言</label><input list="langList" id="language" placeholder="繁體中文、日文"><datalist id="langList"></datalist></div>
+        <div><label>書籍類型</label><input list="catList" id="bookCategory" placeholder="例：小說、漫畫、同人誌"><datalist id="catList"></datalist></div>
         <div><label>形式</label><select id="format" onchange="toggleEPlatform()"><option value="實體書">實體書</option><option value="電子書">電子書</option></select></div>
         
         <div id="ePlatformDiv" style="display:none;"><label>電子書平台 (必填)</label><input list="platList" id="ePlatform" placeholder="例如：Kindle、BOOK☆WALKER"><datalist id="platList"></datalist></div>
         
         <div><label>集數</label><input type="number" id="volume" value="1"></div>
         <div><label>作品狀態</label><select id="workStatus"><option>正文完結</option><option>正文未完結</option><option>番外完結</option><option>番外未完結</option><option>坑</option></select></div>
-        <div><label>閱讀狀態</label><input type="text" id="readProgress" placeholder="例如：未讀、已看完、已看部分"></div>
-        <div><label>標籤 (逗號隔開)</label><input type="text" id="tags" placeholder="例如：推理, 奇幻, BL"></div>
-        <div><label>關聯 ID</label><input type="text" id="relationId" placeholder="例如：HP, 盜筆系列"></div>
+        <div><label>閱讀狀態</label><input type="text" id="readProgress" placeholder="未讀、已看、已看部分"></div>
+        <div><label>標籤 (逗號隔開)</label><input type="text" id="tags" placeholder="例：推理, 奇幻, BL"></div>
+        <div><label>關聯 ID</label><input type="text" id="relationId" placeholder="例：HP, 盜筆系列"></div>
         <div class="form-full"><label>備註</label><textarea id="notes" rows="1" placeholder="可以記錄是否有購買其他版本、是否有外傳前傳關聯作品......等等"></textarea></div>
         
         <button class="btn-add" onclick="checkAndSave()">儲存書單</button>
@@ -258,3 +258,4 @@
 </script>
 </body>
 </html>
+
