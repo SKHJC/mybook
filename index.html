@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的雲端書庫 V6.1 - 完美記憶編輯版</title>
+    <title>我的雲端書庫 V6.2 - 刪除與統計版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -33,6 +33,15 @@
         .progress-text { font-weight: bold; color: #333; }
         .progress-sub { font-size: 11px; color: #777; font-weight: normal; }
         .note-cell { font-size: 12px; color: #444; line-height: 1.4; white-space: pre-wrap; }
+        
+        /* 統計面板樣式 */
+        .stats-panel { margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; color: #495057; }
+        .stats-item { background: white; padding: 10px 15px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stats-item strong { color: #007bff; font-size: 16px; }
+
+        /* 刪除按鈕樣式 */
+        .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .btn-delete:hover { background: #c82333; }
 
         @media (max-width: 800px) {
             table, thead, tbody, th, td, tr { display: block; }
@@ -103,20 +112,85 @@
                 <th style="width: 150px;">標籤</th>
                 <th style="width: 160px;">購買狀況</th>
                 <th>備註</th>
+                <th style="width: 60px;">操作</th>
             </tr>
         </thead>
         <tbody id="bookTableBody"></tbody>
     </table>
+
+    <div id="statsPanel" class="stats-panel">
+        </div>
 </div>
 
 <script>
+    // ⚠️ 請換成你的 URL
     const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec"; 
     
     let allBooks = []; 
     let currentFilter = { key: null, value: null };
     let isEditing = false;
 
-    // --- 編輯與重置 ---
+    // --- 1. 新增刪除功能 (前端指令) ---
+    async function deleteBook(title, language) {
+        if (!confirm(`確定要永久刪除《${title}》(${language}) 嗎？此動作無法撤銷。`)) return;
+        
+        showLoading(true);
+        try {
+            // 我們利用 Google Apps Script 現有的 save 功能，但傳送空的標記或專屬 action
+            // 為了簡化，這裡我們需要在 Apps Script 增加一段刪除邏輯。
+            // 這裡我們先發送一個 action: 'delete'
+            const response = await fetch(API_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: 'delete', title: title, language: language }) 
+            });
+            if (response.ok) {
+                alert("✅ 已成功刪除！");
+                loadFromCloud();
+            }
+        } catch (e) {
+            alert("❌ 刪除失敗：" + e);
+        }
+        showLoading(false);
+    }
+
+    // --- 2. 統計功能 ---
+    function updateStats() {
+        const statsPanel = document.getElementById('statsPanel');
+        if (allBooks.length === 0) {
+            statsPanel.innerHTML = "目前尚無資料。";
+            return;
+        }
+
+        // 統計邏輯
+        const total = allBooks.length;
+        const formatCounts = {};
+        const categoryCounts = {};
+
+        allBooks.forEach(book => {
+            // 形式統計 (可能包含多個標籤)
+            book.format.forEach(f => {
+                formatCounts[f] = (formatCounts[f] || 0) + 1;
+            });
+            // 書籍類型統計
+            const cat = book.bookCategory || "未分類";
+            categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        });
+
+        // 生成 HTML
+        let html = `<div class="stats-item">總圖書量：<strong>${total}</strong> 本</div>`;
+        
+        html += `<div class="stats-item">形式統計：`;
+        for (let f in formatCounts) { html += `${f}(<strong>${formatCounts[f]}</strong>) `; }
+        html += `</div>`;
+
+        html += `<div class="stats-item">書籍類型統計：`;
+        for (let c in categoryCounts) { html += `${c}(<strong>${categoryCounts[c]}</strong>) `; }
+        html += `</div>`;
+
+        statsPanel.innerHTML = html;
+    }
+
+    // --- 以下為 V6.1 原有功能 (保持不變) ---
     function editBook(title, language) {
         const book = allBooks.find(b => b.title === title && b.language === language);
         if (!book) return;
@@ -161,7 +235,6 @@
         document.getElementById('cancelBtn').style.display = 'none';
     }
 
-    // --- 雲端與顯示 ---
     function handleSingleVolume(cb) {
         const volInput = document.getElementById('volume');
         volInput.disabled = cb.checked;
@@ -220,36 +293,9 @@
             allBooks.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hant'));
             updateDatalists();
             renderTable();
+            updateStats(); // 載入後更新統計
         } catch (e) { console.error(e); }
         showLoading(false);
-    }
-
-    function updateDatalists() {
-        // 取得所有唯一值
-        const getUniques = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-' && v !== '未知' && v !== '無');
-        
-        const authors = getUniques('author');
-        const langs = getUniques('language');
-        const cats = getUniques('bookCategory');
-        const positions = getUniques('ePlatform');
-        const formats = [...new Set(allBooks.flatMap(b => b.format))];
-        const reads = getUniques('readProgress');
-        const allTags = [...new Set(allBooks.flatMap(b => b.tags))];
-        const relIds = getUniques('relationId');
-
-        // 輔助函式：將清單填入對應 datalist
-        const fillList = (id, list) => {
-            document.getElementById(id).innerHTML = list.map(v => `<option value="${v}">`).join('');
-        };
-
-        fillList('authorList', authors);
-        fillList('langList', langs);
-        fillList('catList', cats);
-        fillList('platList', positions);
-        fillList('formatList', formats);
-        fillList('readList', reads);
-        fillList('tagMemoryList', allTags);
-        fillList('relList', relIds);
     }
 
     function renderTable() {
@@ -277,15 +323,27 @@
                 <td data-label="標籤">${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}<div style="margin-top:4px"><span class="tag-pill" style="background:#fff" onclick="setFilter('關聯ID','${book.relationId}')">#${book.relationId}</span></div></td>
                 <td data-label="購買狀況"><span class="progress-text">${volDisplay} ${book.workStatus}</span><div class="progress-sub clickable" onclick="setFilter('購買','${book.buyStatus}')">(${book.buyStatus})</div></td>
                 <td data-label="備註" class="note-cell">${book.notes}</td>
+                <td data-label="操作"><button class="btn-delete" onclick="deleteBook('${book.title}', '${book.language}')">刪除</button></td>
             </tr>`;
         });
     }
 
-    // 其他過濾/備份功能保留...
     function setFilter(key, value) { currentFilter = { key, value }; document.getElementById('filterInfo').style.display = 'flex'; document.getElementById('filterText').innerText = `篩選 ${key}: ${value}`; renderTable(); }
     function clearFilter() { currentFilter = { key: null, value: null }; document.getElementById('filterInfo').style.display = 'none'; renderTable(); }
     function exportBackup() { const blob = new Blob([JSON.stringify(allBooks, null, 2)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `書庫備份_${new Date().toISOString().slice(0,10)}.json`; link.click(); }
     function importBackup(e) { const reader = new FileReader(); reader.onload = async function(ev) { const data = JSON.parse(ev.target.result); if (confirm(`匯入 ${data.length} 筆資料？`)) { showLoading(true); for (const b of data) { b.action='save'; b.tags=Array.isArray(b.tags)?b.tags.join(','):b.tags; b.format=Array.isArray(b.format)?b.format.join(','):b.format; await fetch(API_URL,{method:'POST',body:JSON.stringify(b)}); } loadFromCloud(); } }; reader.readAsText(e.target.files[0]); }
+    function updateDatalists() { 
+        const getUniques = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-' && v !== '未知' && v !== '無');
+        const fillList = (id, list) => { document.getElementById(id).innerHTML = list.map(v => `<option value="${v}">`).join(''); };
+        fillList('authorList', getUniques('author'));
+        fillList('langList', getUniques('language'));
+        fillList('catList', getUniques('bookCategory'));
+        fillList('platList', getUniques('ePlatform'));
+        fillList('formatList', [...new Set(allBooks.flatMap(b => b.format))]);
+        fillList('readList', getUniques('readProgress'));
+        fillList('tagMemoryList', [...new Set(allBooks.flatMap(b => b.tags))]);
+        fillList('relList', getUniques('relationId'));
+    }
     function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
     loadFromCloud();
 </script>
