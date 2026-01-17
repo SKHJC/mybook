@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V7.4</title>
+    <title>📚 ㄎㄇ的購書紀錄 V7.5</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -82,10 +82,8 @@
         </div>
         <div id="divWork"><label>作品狀態</label><input list="workList" id="workStatus" placeholder="例：正文完結"><datalist id="workList"></datalist></div>
         <div id="divRead"><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀"><datalist id="readList"></datalist></div>
-        
         <div id="divTags"><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理"><datalist id="tagMemoryList"></datalist></div>
         <div id="divRel" class="form-full"><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
-        
         <div class="form-full"><label>備註 (版本差異可寫在此)</label><textarea id="notes" rows="2" placeholder="詳細備註..."></textarea></div>
         
         <button class="btn-add" id="saveBtn" onclick="checkAndSave()">儲存書單至雲端</button>
@@ -99,10 +97,10 @@
             <tr>
                 <th style="width: 120px;">書籍位置</th>
                 <th style="width: 100px;">形式</th>
+                <th style="width: 150px;">購買狀況</th>
                 <th style="width: 100px;">閱讀狀態</th>
                 <th style="width: 150px;">書名/作者</th>
                 <th style="width: 150px;">標籤/類別</th>
-                <th style="width: 160px;">購買狀況</th>
                 <th>備註</th>
                 <th style="width: 60px;">操作</th>
             </tr>
@@ -130,7 +128,6 @@
         const titleVal = document.getElementById('title').value;
         if (!titleVal) return alert("請先填寫書名，再進入新增版本模式。");
         isAddingVersion = true; isEditing = false;
-        // 鎖定區域
         ["divTitle", "divAuthor", "divCat", "divSubCat", "divWork", "divRead", "divTags", "divRel"].forEach(id => {
             document.getElementById(id).classList.add('locked-field');
         });
@@ -268,6 +265,10 @@
                     <span class="${getPillClass(book.language)}" onclick="setFilter('語言','${book.language}')">${book.language}</span><br>
                     ${book.format.map(f => `<span class="${getPillClass(f)}" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}
                 </td>
+                <td data-label="購買狀況">
+                    <span class="progress-text">${volDisplay} ${book.workStatus}</span>
+                    <div class="progress-sub clickable ${buyStatusClass}" onclick="setFilter('購買','${book.buyStatus}')">(${book.buyStatus})</div>
+                </td>
                 <td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
                 <td data-label="書名/作者">
                     <strong class="edit-link" onclick="editBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">${book.title}</strong><br>
@@ -278,10 +279,6 @@
                     ${getMultiPillHtml(book.subCategory, '標籤', 'tag-pill type-pill')}
                     ${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}
                     <div style="margin-top:4px"><span class="tag-pill" style="background:#fff" onclick="setFilter('關聯ID','${book.relationId}')">#${book.relationId}</span></div>
-                </td>
-                <td data-label="購買狀況">
-                    <span class="progress-text">${volDisplay} ${book.workStatus}</span>
-                    <div class="progress-sub clickable ${buyStatusClass}" onclick="setFilter('購買','${book.buyStatus}')">(${book.buyStatus})</div>
                 </td>
                 <td data-label="備註" class="note-cell">${book.notes}</td>
                 <td data-label="操作"><button class="btn-delete" onclick="deleteBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">刪除</button></td>
