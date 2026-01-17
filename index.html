@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V7.5</title>
+    <title>📚 ㄎㄇ的購書紀錄 V7.6 - 跨列合併版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -38,6 +38,10 @@
         .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         
         .locked-field { opacity: 0.5; pointer-events: none; background-color: #f0f0f0; }
+
+        /* 讓跨列合併的版本界線更清楚 */
+        .version-row td { border-bottom: 1px solid #f8f9fa; }
+        .group-last-row td { border-bottom: 2px solid #dee2e6; }
 
         @media (max-width: 800px) {
             table, thead, tbody, th, td, tr { display: block; }
@@ -82,6 +86,7 @@
         </div>
         <div id="divWork"><label>作品狀態</label><input list="workList" id="workStatus" placeholder="例：正文完結"><datalist id="workList"></datalist></div>
         <div id="divRead"><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀"><datalist id="readList"></datalist></div>
+        
         <div id="divTags"><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理"><datalist id="tagMemoryList"></datalist></div>
         <div id="divRel" class="form-full"><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
         <div class="form-full"><label>備註 (版本差異可寫在此)</label><textarea id="notes" rows="2" placeholder="詳細備註..."></textarea></div>
@@ -243,9 +248,11 @@
 
     function renderTable() {
         const tbody = document.getElementById('bookTableBody'); const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        tbody.innerHTML = ''; let displayBooks = allBooks;
+        tbody.innerHTML = ''; 
+        
+        let filteredBooks = allBooks;
         if (currentFilter.key) {
-            displayBooks = allBooks.filter(b => {
+            filteredBooks = allBooks.filter(b => {
                 if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value) || b.bookCategory === currentFilter.value || b.subCategory.split(/[，,]/).includes(currentFilter.value);
                 if (currentFilter.key === '形式') return b.format.includes(currentFilter.value);
                 if (currentFilter.key === '位置') return b.ePlatform.split(/[，,]/).map(s => s.trim()).includes(currentFilter.value);
@@ -253,36 +260,61 @@
                 return b[map[currentFilter.key]] === currentFilter.value;
             });
         }
-        if (searchTerm) { displayBooks = displayBooks.filter(b => b.title.toLowerCase().includes(searchTerm) || b.tags.some(t => t.toLowerCase().includes(searchTerm)) || b.notes.toLowerCase().includes(searchTerm)); }
+        if (searchTerm) { filteredBooks = filteredBooks.filter(b => b.title.toLowerCase().includes(searchTerm) || b.tags.some(t => t.toLowerCase().includes(searchTerm)) || b.notes.toLowerCase().includes(searchTerm)); }
 
-        displayBooks.forEach(book => {
-            const volDisplay = book.volume.toString().includes('(全)') ? book.volume : book.volume + '集';
-            const buyStatusClass = book.buyStatus.includes('未') ? 'alert-text' : '';
+        // --- 核心邏輯：依照書名分組 ---
+        const groups = [];
+        filteredBooks.forEach(book => {
+            const key = book.title + "_" + book.author;
+            let group = groups.find(g => g.key === key);
+            if (!group) {
+                group = { key: key, books: [] };
+                groups.push(group);
+            }
+            group.books.push(book);
+        });
 
-            tbody.innerHTML += `<tr>
-                <td data-label="書籍位置">${getMultiPillHtml(book.ePlatform, '位置')}</td>
-                <td data-label="形式">
-                    <span class="${getPillClass(book.language)}" onclick="setFilter('語言','${book.language}')">${book.language}</span><br>
-                    ${book.format.map(f => `<span class="${getPillClass(f)}" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}
-                </td>
-                <td data-label="購買狀況">
-                    <span class="progress-text">${volDisplay} ${book.workStatus}</span>
-                    <div class="progress-sub clickable ${buyStatusClass}" onclick="setFilter('購買','${book.buyStatus}')">(${book.buyStatus})</div>
-                </td>
-                <td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
-                <td data-label="書名/作者">
-                    <strong class="edit-link" onclick="editBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">${book.title}</strong><br>
-                    <small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff; text-decoration:underline;">${book.author}</small>
-                </td>
-                <td data-label="標籤">
-                    <span class="tag-pill type-pill" onclick="setFilter('標籤','${book.bookCategory}')">${book.bookCategory}</span>
-                    ${getMultiPillHtml(book.subCategory, '標籤', 'tag-pill type-pill')}
-                    ${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}
-                    <div style="margin-top:4px"><span class="tag-pill" style="background:#fff" onclick="setFilter('關聯ID','${book.relationId}')">#${book.relationId}</span></div>
-                </td>
-                <td data-label="備註" class="note-cell">${book.notes}</td>
-                <td data-label="操作"><button class="btn-delete" onclick="deleteBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">刪除</button></td>
-            </tr>`;
+        groups.forEach(group => {
+            group.books.forEach((book, index) => {
+                const isFirst = index === 0;
+                const rowSpan = group.books.length;
+                const volDisplay = book.volume.toString().includes('(全)') ? book.volume : book.volume + '集';
+                const buyStatusClass = book.buyStatus.includes('未') ? 'alert-text' : '';
+                const lastRowClass = (index === group.books.length - 1) ? 'group-last-row' : 'version-row';
+
+                let rowHtml = `<tr class="${lastRowClass}">
+                    <td data-label="書籍位置">${getMultiPillHtml(book.ePlatform, '位置')}</td>
+                    <td data-label="形式">
+                        <span class="${getPillClass(book.language)}" onclick="setFilter('語言','${book.language}')">${book.language}</span><br>
+                        ${book.format.map(f => `<span class="${getPillClass(f)}" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}
+                    </td>
+                    <td data-label="購買狀況">
+                        <span class="progress-text">${volDisplay} ${book.workStatus}</span>
+                        <div class="progress-sub clickable ${buyStatusClass}" onclick="setFilter('購買','${book.buyStatus}')">(${book.buyStatus})</div>
+                    </td>`;
+
+                if (isFirst) {
+                    // 黃色區域：相同部分只顯示一次，使用 rowspan 跨列
+                    rowHtml += `
+                        <td data-label="閱讀狀態" rowspan="${rowSpan}"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
+                        <td data-label="書名/作者" rowspan="${rowSpan}">
+                            <strong class="edit-link" onclick="editBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">${book.title}</strong><br>
+                            <small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff; text-decoration:underline;">${book.author}</small>
+                        </td>
+                        <td data-label="標籤" rowspan="${rowSpan}">
+                            <span class="tag-pill type-pill" onclick="setFilter('標籤','${book.bookCategory}')">${book.bookCategory}</span>
+                            ${getMultiPillHtml(book.subCategory, '標籤', 'tag-pill type-pill')}
+                            ${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}
+                            <div style="margin-top:4px"><span class="tag-pill" style="background:#fff" onclick="setFilter('關聯ID','${book.relationId}')">#${book.relationId}</span></div>
+                        </td>
+                        <td data-label="備註" class="note-cell" rowspan="${rowSpan}">${book.notes}</td>
+                        <td data-label="操作" rowspan="${rowSpan}"><button class="btn-delete" onclick="deleteBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">刪除</button></td>
+                    `;
+                }
+
+                rowHtml += `</tr>`;
+                tbody.innerHTML += rowHtml;
+            });
         });
     }
 
