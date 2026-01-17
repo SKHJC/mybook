@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V7.6 - 跨列合併版</title>
+    <title>📚 ㄎㄇ的購書紀錄 V7.7 - 線條完美版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -25,8 +25,8 @@
         .filter-info { background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: none; justify-content: space-between; align-items: center; border: 1px solid #ffeeba; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; }
-        th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; border: 1px solid #eee; }
+        th, td { padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; border-bottom: 1px solid #eee; }
         th { background-color: #f8f9fa; color: #666; font-weight: bold; border-top: 2px solid #007bff; }
         
         .tag-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #e9ecef; margin-right: 4px; margin-bottom: 4px; cursor: pointer; border: 1px solid #ccc; }
@@ -39,9 +39,15 @@
         
         .locked-field { opacity: 0.5; pointer-events: none; background-color: #f0f0f0; }
 
-        /* 讓跨列合併的版本界線更清楚 */
-        .version-row td { border-bottom: 1px solid #f8f9fa; }
-        .group-last-row td { border-bottom: 2px solid #dee2e6; }
+        /* --- 修正線條的核心 CSS --- */
+        /* 同一本書的不同版本之間的線：淡色細線 */
+        .version-row td { border-bottom: 1px solid #f0f0f0; }
+        
+        /* 不同書籍之間的分界線：深色實線，確保連通全寬 */
+        .group-last-row td { border-bottom: 2px solid #ccc !important; }
+        
+        /* 針對跨列欄位特別處理，防止底線消失 */
+        td[rowspan] { border-bottom: 2px solid #ccc !important; background-color: #fff; }
 
         @media (max-width: 800px) {
             table, thead, tbody, th, td, tr { display: block; }
@@ -49,6 +55,7 @@
             tr { border: 1px solid #ccc; margin-bottom: 15px; border-radius: 8px; padding: 10px; background: #fff; }
             td { border: none; position: relative; padding-left: 40%; margin-bottom: 8px; }
             td:before { position: absolute; left: 10px; width: 35%; font-weight: bold; content: attr(data-label); color: #007bff; }
+            td[rowspan] { border-bottom: none !important; }
         }
     </style>
 </head>
@@ -86,7 +93,6 @@
         </div>
         <div id="divWork"><label>作品狀態</label><input list="workList" id="workStatus" placeholder="例：正文完結"><datalist id="workList"></datalist></div>
         <div id="divRead"><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀"><datalist id="readList"></datalist></div>
-        
         <div id="divTags"><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理"><datalist id="tagMemoryList"></datalist></div>
         <div id="divRel" class="form-full"><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
         <div class="form-full"><label>備註 (版本差異可寫在此)</label><textarea id="notes" rows="2" placeholder="詳細備註..."></textarea></div>
@@ -248,9 +254,7 @@
 
     function renderTable() {
         const tbody = document.getElementById('bookTableBody'); const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        tbody.innerHTML = ''; 
-        
-        let filteredBooks = allBooks;
+        tbody.innerHTML = ''; let filteredBooks = allBooks;
         if (currentFilter.key) {
             filteredBooks = allBooks.filter(b => {
                 if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value) || b.bookCategory === currentFilter.value || b.subCategory.split(/[，,]/).includes(currentFilter.value);
@@ -262,15 +266,11 @@
         }
         if (searchTerm) { filteredBooks = filteredBooks.filter(b => b.title.toLowerCase().includes(searchTerm) || b.tags.some(t => t.toLowerCase().includes(searchTerm)) || b.notes.toLowerCase().includes(searchTerm)); }
 
-        // --- 核心邏輯：依照書名分組 ---
         const groups = [];
         filteredBooks.forEach(book => {
             const key = book.title + "_" + book.author;
             let group = groups.find(g => g.key === key);
-            if (!group) {
-                group = { key: key, books: [] };
-                groups.push(group);
-            }
+            if (!group) { group = { key: key, books: [] }; groups.push(group); }
             group.books.push(book);
         });
 
@@ -294,7 +294,6 @@
                     </td>`;
 
                 if (isFirst) {
-                    // 黃色區域：相同部分只顯示一次，使用 rowspan 跨列
                     rowHtml += `
                         <td data-label="閱讀狀態" rowspan="${rowSpan}"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
                         <td data-label="書名/作者" rowspan="${rowSpan}">
@@ -311,7 +310,6 @@
                         <td data-label="操作" rowspan="${rowSpan}"><button class="btn-delete" onclick="deleteBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">刪除</button></td>
                     `;
                 }
-
                 rowHtml += `</tr>`;
                 tbody.innerHTML += rowHtml;
             });
