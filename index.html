@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V8.3</title>
+    <title>📚 ㄎㄇ的購書紀錄 V8.4</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -11,6 +11,7 @@
         .backup-zone { text-align: right; margin-bottom: 10px; }
         .btn-secondary { background:#6c757d; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size: 12px; margin-left: 5px; }
         
+        /* 表單 */
         .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
         .form-full { grid-column: 1 / -1; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
@@ -21,18 +22,19 @@
         .btn-add.editing { background-color: #ffc107; color: #000; }
         .version-btn { grid-column: 1 / -1; padding: 12px; background: #6f42c1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
         
+        /* 分類按鈕 */
         .category-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; padding: 10px; border-top: 1px dashed #ddd; }
         .cat-btn { background: #fff; color: #495057; padding: 8px 20px; border-radius: 20px; font-size: 15px; font-weight: bold; cursor: pointer; border: 2px solid #6c757d; transition: 0.3s; }
-        .cat-btn:hover { background: #6c757d; color: #fff; transform: translateY(-2px); }
-        .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; box-shadow: 0 3px 8px rgba(0,123,255,0.3); }
+        .cat-btn:hover { background: #6c757d; color: #fff; }
+        .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
         .cat-btn-all { border-color: #007bff; color: #007bff; }
-        .cat-btn-all.active { background: #007bff; color: #fff; }
 
         .search-section { margin-bottom: 20px; }
         #searchInput { width: 100%; border: 2px solid #007bff; padding: 12px; border-radius: 25px; box-sizing: border-box; font-size: 16px; }
         
         #contentSection { display: none; }
         
+        /* 表格 */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; border: 1px solid #eee; }
         th, td { padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; border-bottom: 1px solid #eee; }
         th { background-color: #f8f9fa; color: #666; font-weight: bold; border-top: 2px solid #007bff; }
@@ -43,12 +45,18 @@
         .edit-link { color: #28a745 !important; font-weight: bold; cursor: pointer; text-decoration: underline; }
         .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         
-        .version-row td { border-bottom: 1px solid #f0f0f0; }
         .group-last-row td { border-bottom: 2px solid #ccc !important; }
         td[rowspan] { border-bottom: 2px solid #ccc !important; background-color: #fff; }
 
-        .home-btn-container { display: flex; justify-content: center; margin: 30px 0; }
-        .btn-home { background: #007bff; color: white; padding: 12px 40px; border-radius: 30px; font-size: 18px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+        /* 分頁按鈕樣式 */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 20px; }
+        .page-btn { padding: 5px 12px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; font-size: 14px; }
+        .page-btn:hover { background: #f0f0f0; }
+        .page-btn.active { background: #007bff; color: white; border-color: #007bff; }
+        .page-btn:disabled { cursor: not-allowed; color: #ccc; }
+
+        .home-btn-container { display: flex; justify-content: center; margin: 20px 0; }
+        .btn-home { background: #007bff; color: white; padding: 10px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; }
 
         .stats-panel { margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 14px; color: #495057; border: 1px solid #eee; }
         .stats-item { background: white; padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
@@ -121,6 +129,9 @@
             </thead>
             <tbody id="bookTableBody"></tbody>
         </table>
+        
+        <div id="pagination" class="pagination"></div>
+
         <div class="home-btn-container">
             <button class="btn-home" onclick="clearFilter()">🏠 回首頁 (隱藏表格)</button>
         </div>
@@ -130,12 +141,14 @@
 </div>
 
 <script>
-    // 已填入您的專屬 URL
     const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec"; 
-    
     let allBooks = []; 
     let currentFilter = { key: null, value: null };
     let lastSavedTitle = null;
+    
+    // 分頁相關變數
+    let currentPage = 1;
+    const itemsPerPage = 5;
 
     function getPillClass(text) { return text.includes('未') ? 'tag-pill alert-pill' : 'tag-pill format-pill'; }
     function getMultiPillHtml(fieldValue, filterKey, customClass = '') {
@@ -148,20 +161,16 @@
         const panel = document.getElementById('categoryPanel');
         const categories = [...new Set(allBooks.map(b => b.bookCategory))].filter(Boolean).sort();
         panel.innerHTML = '';
-        
         const allBtn = document.createElement('button');
-        allBtn.className = 'cat-btn cat-btn-all';
-        if (currentFilter.key === 'ALL') allBtn.classList.add('active');
+        allBtn.className = 'cat-btn cat-btn-all' + (currentFilter.key === 'ALL' ? ' active' : '');
         allBtn.innerText = '📂 顯示全部';
-        allBtn.onclick = () => setFilter('ALL', null);
+        allBtn.onclick = () => { currentPage = 1; setFilter('ALL', null); };
         panel.appendChild(allBtn);
-
         categories.forEach(cat => {
             const btn = document.createElement('button');
-            btn.className = 'cat-btn';
-            if (currentFilter.key === '類型' && currentFilter.value === cat) btn.classList.add('active');
+            btn.className = 'cat-btn' + (currentFilter.key === '類型' && currentFilter.value === cat ? ' active' : '');
             btn.innerText = cat;
-            btn.onclick = () => setFilter('類型', cat);
+            btn.onclick = () => { currentPage = 1; setFilter('類型', cat); };
             panel.appendChild(btn);
         });
     }
@@ -176,24 +185,29 @@
     }
 
     function handleSearch(val) {
+        lastSavedTitle = null;
+        currentPage = 1; // 搜尋時重置頁碼
         if (val.trim() !== '') {
-            lastSavedTitle = null;
             document.getElementById('contentSection').style.display = 'block';
             renderTable();
-        } else if (!currentFilter.key && !lastSavedTitle) {
+        } else if (!currentFilter.key) {
             document.getElementById('contentSection').style.display = 'none';
+        } else {
+            renderTable();
         }
     }
 
     function clearFilter() { 
         currentFilter = { key: null, value: null }; 
         lastSavedTitle = null;
+        currentPage = 1;
         document.getElementById('contentSection').style.display = 'none'; 
         document.getElementById('searchInput').value = '';
         updateCategoryButtons();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // --- 編輯鎖定功能 ---
     function toggleMultiVersion() {
         const titleVal = document.getElementById('title').value;
         if (!titleVal) return alert("請先填寫書名，再進入新增版本模式。");
@@ -307,9 +321,12 @@
     }
 
     function renderTable() {
-        const tbody = document.getElementById('bookTableBody'); const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        tbody.innerHTML = ''; let filteredBooks = allBooks;
+        const tbody = document.getElementById('bookTableBody'); 
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        tbody.innerHTML = ''; 
+        let filteredBooks = allBooks;
         
+        // 篩選邏輯
         if (lastSavedTitle) {
             filteredBooks = allBooks.filter(b => b.title === lastSavedTitle);
         } else if (currentFilter.key) {
@@ -325,9 +342,9 @@
                 });
             }
         }
-        
         if (searchTerm) { filteredBooks = filteredBooks.filter(b => b.title.toLowerCase().includes(searchTerm) || b.tags.some(t => t.toLowerCase().includes(searchTerm)) || b.notes.toLowerCase().includes(searchTerm)); }
 
+        // 分組
         const groups = [];
         filteredBooks.forEach(book => {
             const key = book.title + "_" + book.author;
@@ -336,16 +353,23 @@
             group.books.push(book);
         });
 
-        groups.forEach(group => {
+        // 分頁邏輯：以「書名組」為單位進行分頁
+        const totalGroups = groups.length;
+        const totalPages = Math.ceil(totalGroups / itemsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        
+        const startIdx = (currentPage - 1) * itemsPerPage;
+        const pageGroups = groups.slice(startIdx, startIdx + itemsPerPage);
+
+        pageGroups.forEach(group => {
             group.books.forEach((book, index) => {
                 const isFirst = index === 0;
                 const rowSpan = group.books.length;
                 const volDisplay = book.volume.toString().includes('(全)') ? book.volume : book.volume + '集';
                 const buyStatusClass = book.buyStatus.includes('未') ? 'alert-text' : '';
-                const lastRowClass = (index === group.books.length - 1) ? 'group-last-row' : 'version-row';
                 const authorDisplay = book.nationality ? `${book.author} (${book.nationality})` : book.author;
 
-                let rowHtml = `<tr class="${lastRowClass}">
+                let rowHtml = `<tr class="${index === group.books.length - 1 ? 'group-last-row' : ''}">
                     <td data-label="書籍位置">${getMultiPillHtml(book.ePlatform, '位置')}</td>
                     <td data-label="形式">
                         <span class="${getPillClass(book.language)}" onclick="setFilter('語言','${book.language}')">${book.language}</span><br>
@@ -373,10 +397,36 @@
                         <td data-label="操作" rowspan="${rowSpan}"><button class="btn-delete" onclick="deleteBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">刪除</button></td>
                     `;
                 }
-                rowHtml += `</tr>`;
-                tbody.innerHTML += rowHtml;
+                tbody.innerHTML += rowHtml + `</tr>`;
             });
         });
+        renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+        const paginDiv = document.getElementById('pagination');
+        paginDiv.innerHTML = '';
+        if (totalPages <= 1 && !lastSavedTitle) return; // 單頁不顯示
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'page-btn'; prevBtn.innerText = '◀ 上一頁';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => { currentPage--; renderTable(); };
+        paginDiv.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+            btn.innerText = i;
+            btn.onclick = () => { currentPage = i; renderTable(); };
+            paginDiv.appendChild(btn);
+        }
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'page-btn'; nextBtn.innerText = '下一頁 ▶';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => { currentPage++; renderTable(); };
+        paginDiv.appendChild(nextBtn);
     }
 
     async function deleteBook(title, language, format) {
