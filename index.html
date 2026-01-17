@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V8.0 - 分類導航版</title>
+    <title>📚 ㄎㄇ的購書紀錄 V8.1</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -11,16 +11,16 @@
         .backup-zone { text-align: right; margin-bottom: 10px; }
         .btn-secondary { background:#6c757d; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size: 12px; margin-left: 5px; }
         
-        /* 搜尋與分類按鈕區 */
         .search-section { margin-bottom: 20px; }
-        #searchInput { width: 100%; border: 2px solid #007bff; padding: 12px; border-radius: 25px; box-sizing: border-box; font-size: 16px; margin-bottom: 20px; }
+        #searchInput { width: 100%; border: 2px solid #007bff; padding: 12px; border-radius: 25px; box-sizing: border-box; font-size: 16px; }
         
-        .category-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; padding: 10px; }
-        .cat-btn { background: #6c757d; color: white; padding: 20px 40px; border-radius: 15px; font-size: 24px; font-weight: bold; cursor: pointer; border: none; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 120px; text-align: center; }
-        .cat-btn:hover { background: #5a6268; transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
-        .cat-btn.active { background: #007bff; }
+        /* 分類按鈕區優化：移至表單下方且縮小 */
+        .category-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; padding: 10px; border-top: 1px dashed #ddd; }
+        .cat-btn { background: #fff; color: #495057; padding: 8px 20px; border-radius: 20px; font-size: 15px; font-weight: bold; cursor: pointer; border: 2px solid #6c757d; transition: 0.3s; }
+        .cat-btn:hover { background: #6c757d; color: #fff; transform: translateY(-2px); }
+        .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; box-shadow: 0 3px 8px rgba(0,123,255,0.3); }
 
-        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
+        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
         .form-full { grid-column: 1 / -1; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
         input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
@@ -32,6 +32,9 @@
         
         .filter-info { background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 10px; display: none; justify-content: space-between; align-items: center; border: 1px solid #ffeeba; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
+        
+        /* 表格區塊預設隱藏 */
+        #contentSection { display: none; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; border: 1px solid #eee; }
         th, td { padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; border-bottom: 1px solid #eee; }
@@ -60,7 +63,6 @@
             td { border: none; position: relative; padding-left: 40%; margin-bottom: 8px; }
             td:before { position: absolute; left: 10px; width: 35%; font-weight: bold; content: attr(data-label); color: #007bff; }
             td[rowspan] { border-bottom: none !important; }
-            .cat-btn { padding: 10px 20px; font-size: 18px; }
         }
     </style>
 </head>
@@ -74,14 +76,8 @@
         <input type="file" id="importFile" style="display:none" onchange="importBackup(event)">
     </div>
 
-    <div class="search-section">
-        <input type="text" id="searchInput" placeholder="🔍 直接搜尋書名、作者、備註..." oninput="renderTable()">
-    </div>
-
-    <div id="categoryPanel" class="category-container"></div>
-
     <div class="form-group" id="inputForm">
-        <button type="button" class="version-btn" id="addVersionBtn" onclick="toggleMultiVersion()">➕ 為本書新增其他版本資料 (鎖定書名/作者/作品屬性)</button>
+        <button type="button" class="version-btn" id="addVersionBtn" onclick="toggleMultiVersion()">➕ 為本書新增其他版本資料</button>
         <div id="divTitle"><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
         <div id="divAuthor"><label>作者</label><input list="authorList" id="author" placeholder="例：J.K. 羅琳"><datalist id="authorList"></datalist></div>
         <div id="divCat"><label>書籍類型</label><input list="catList" id="bookCategory" placeholder="例：漫畫"><datalist id="catList"></datalist></div>
@@ -89,7 +85,7 @@
         <div><label>購買狀態</label><select id="buyStatus"><option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option><option>已購買</option><option>重複購買</option><option>已隱藏</option></select></div>
         <div><label>內文語言</label><input list="langList" id="language" placeholder="例：繁體中文"><datalist id="langList"></datalist></div>
         <div><label>形式 (例：實體書, 電子書)</label><input list="formatList" id="format" placeholder="可填多個"><datalist id="formatList"><option value="實體書"><option value="電子書"></datalist></div>
-        <div><label>書籍位置</label><input list="platList" id="ePlatform" placeholder="例：老家, BW"><datalist id="platList"></datalist></div>
+        <div><label>書籍位置</label><input list="platList" id="ePlatform" placeholder="例：BW"><datalist id="platList"></datalist></div>
         <div id="divVol">
             <label>目前購買集數</label><input type="number" id="volume" value="1"><div class="checkbox-group"><input type="checkbox" id="isSingleVolume" onchange="handleSingleVolume(this)"><label for="isSingleVolume" style="display:inline; font-size:12px;">此書全一集完結</label></div>
         </div>
@@ -102,24 +98,31 @@
         <button class="btn-secondary form-full" id="cancelBtn" style="display:none; padding:10px;" onclick="resetForm()">取消/結束鎖定狀態</button>
     </div>
 
-    <div id="filterInfo" class="filter-info"><span id="filterText"></span><button onclick="clearFilter()">清除篩選 / 顯示全部</button></div>
-    
-    <table id="bookTable">
-        <thead>
-            <tr>
-                <th style="width: 120px;">書籍位置</th>
-                <th style="width: 100px;">形式</th>
-                <th style="width: 150px;">購買狀況</th>
-                <th style="width: 100px;">閱讀狀態</th>
-                <th style="width: 150px;">書名/作者</th>
-                <th style="width: 150px;">標籤/類別</th>
-                <th>備註</th>
-                <th style="width: 60px;">操作</th>
-            </tr>
-        </thead>
-        <tbody id="bookTableBody"></tbody>
-    </table>
-    <div id="statsPanel" class="stats-panel"></div>
+    <div id="categoryPanel" class="category-container"></div>
+
+    <div id="contentSection">
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="🔍 搜尋目前分類中的關鍵字..." oninput="renderTable()">
+        </div>
+        <div id="filterInfo" class="filter-info"><span id="filterText"></span><button onclick="clearFilter()">清除篩選 / 隱藏表格</button></div>
+        
+        <table id="bookTable">
+            <thead>
+                <tr>
+                    <th style="width: 120px;">書籍位置</th>
+                    <th style="width: 100px;">形式</th>
+                    <th style="width: 150px;">購買狀況</th>
+                    <th style="width: 100px;">閱讀狀態</th>
+                    <th style="width: 150px;">書名/作者</th>
+                    <th style="width: 150px;">標籤/類別</th>
+                    <th>備註</th>
+                    <th style="width: 60px;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="bookTableBody"></tbody>
+        </table>
+        <div id="statsPanel" class="stats-panel"></div>
+    </div>
 </div>
 
 <script>
@@ -136,11 +139,9 @@
         return parts.map(p => `<span class="${customClass || getPillClass(p)}" onclick="setFilter('${filterKey}','${p}')">${p}</span>`).join('');
     }
 
-    // --- 核心：分類按鈕生成 ---
     function updateCategoryButtons() {
         const panel = document.getElementById('categoryPanel');
         const categories = [...new Set(allBooks.map(b => b.bookCategory))].filter(Boolean).sort();
-        
         panel.innerHTML = '';
         categories.forEach(cat => {
             const btn = document.createElement('button');
@@ -152,8 +153,10 @@
         });
     }
 
+    // --- 修改：篩選時才顯示表格 ---
     function setFilter(key, value) { 
         currentFilter = { key, value }; 
+        document.getElementById('contentSection').style.display = 'block'; // 顯示內容
         document.getElementById('filterInfo').style.display = 'flex'; 
         document.getElementById('filterText').innerText = `目前查看分類：${value}`; 
         renderTable(); 
@@ -162,13 +165,13 @@
 
     function clearFilter() { 
         currentFilter = { key: null, value: null }; 
+        document.getElementById('contentSection').style.display = 'none'; // 隱藏內容
         document.getElementById('filterInfo').style.display = 'none'; 
-        renderTable(); 
+        document.getElementById('searchInput').value = '';
         updateCategoryButtons();
     }
 
-    // --- 以下為原有功能邏輯 ---
-
+    // --- 以下邏輯維持 V7.7 版本 ---
     function toggleMultiVersion() {
         const titleVal = document.getElementById('title').value;
         if (!titleVal) return alert("請先填寫書名，再進入新增版本模式。");
@@ -185,7 +188,7 @@
     }
 
     async function deleteBook(title, language, format) {
-        if (!confirm(`確定要刪除《${title}》的 ${language} ${format} 版本嗎？`)) return;
+        if (!confirm(`確定要刪除此筆資料嗎？\n《${title}》(${language})`)) return;
         showLoading(true);
         try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', title: title, language: language, format: format }) }); loadFromCloud(); } catch (e) { alert("失敗：" + e); }
         showLoading(false);
@@ -261,7 +264,7 @@
             if (isAddingVersion) {
                 document.getElementById('language').value = ""; document.getElementById('format').value = "";
                 document.getElementById('ePlatform').value = ""; document.getElementById('notes').value = "版本差異：";
-                alert("✅ 此版本已儲存，您可以繼續填寫下一個版本！");
+                alert("✅ 此版本已儲存！");
             } else { alert("✅ 儲存成功！"); resetForm(); }
             loadFromCloud(); 
         } catch (e) { alert("失敗：" + e); }
@@ -290,6 +293,9 @@
         const tbody = document.getElementById('bookTableBody'); const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         tbody.innerHTML = ''; let filteredBooks = allBooks;
         
+        // 如果有搜尋文字，強制顯示表格區
+        if (searchTerm) document.getElementById('contentSection').style.display = 'block';
+
         if (currentFilter.key) {
             filteredBooks = allBooks.filter(b => {
                 if (currentFilter.key === '類型') return b.bookCategory === currentFilter.value;
