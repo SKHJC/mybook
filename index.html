@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V7.0</title>
+    <title>📚 ㄎㄇ的購書紀錄 V7.2</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -20,7 +20,8 @@
         .checkbox-group input { width: auto; margin-right: 5px; }
         .btn-add { grid-column: 1 / -1; padding: 15px; background-color: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: bold; margin-top: 5px; transition: 0.3s; }
         .btn-add.editing { background-color: #ffc107; color: #000; }
-        .version-btn { grid-column: 1 / -1; padding: 8px; background: #6f42c1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-bottom: 5px; }
+        .version-btn { grid-column: 1 / -1; padding: 12px; background: #6f42c1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        .version-btn:hover { background: #5a32a3; }
         .filter-info { background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: none; justify-content: space-between; align-items: center; border: 1px solid #ffeeba; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; }
@@ -30,9 +31,8 @@
         .format-pill { background: #d1ecf1; color: #007bff; border: 1px solid #bee5eb; }
         .alert-pill { background: #f8d7da !important; color: #dc3545 !important; border: 1px solid #f5c6cb !important; }
         .type-pill { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
+        .edit-link { color: #28a745 !important; font-weight: bold; cursor: pointer; text-decoration: underline; }
         .progress-text { font-weight: bold; color: #333; }
-        .progress-sub { font-size: 11px; color: #777; }
-        .note-cell { font-size: 12px; color: #444; line-height: 1.4; white-space: pre-wrap; }
         .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         @media (max-width: 800px) {
             table, thead, tbody, th, td, tr { display: block; }
@@ -55,31 +55,25 @@
     <div class="search-section"><input type="text" id="searchInput" placeholder="🔍 搜尋書名、標籤、形式或備註..." oninput="renderTable()"></div>
     
     <div class="form-group" id="inputForm">
-        <button type="button" class="version-btn" id="addVersionBtn" onclick="toggleMultiVersion()" style="display:none;">➕ 為本書新增其他版本資料 (鎖定書名/作者)</button>
+        <button type="button" class="version-btn" id="addVersionBtn" onclick="toggleMultiVersion()">➕ 為本書新增其他版本資料 (鎖定書名/作者)</button>
         
-        <div id="mainInfoGroup" style="display: contents;">
-            <div><label>購買狀態</label><select id="buyStatus"><option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option><option>已購買</option><option>重複購買</option><option>已隱藏</option></select></div>
-            <div id="divTitle"><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
-            <div id="divAuthor"><label>作者</label><input list="authorList" id="author" placeholder="例：J.K. 羅琳"><datalist id="authorList"></datalist></div>
-            <div><label>書籍類型</label><input list="catList" id="bookCategory" placeholder="例：漫畫"><datalist id="catList"></datalist></div>
-            <div><label>書籍類別 (逗號隔開)</label><input list="subCatList" id="subCategory" placeholder="例：日本, BL"><datalist id="subCatList"></datalist></div>
-        </div>
+        <div id="divTitle"><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
+        <div id="divAuthor"><label>作者</label><input list="authorList" id="author" placeholder="例：J.K. 羅琳"><datalist id="authorList"></datalist></div>
+        <div id="divCat"><label>書籍類型</label><input list="catList" id="bookCategory" placeholder="例：漫畫"><datalist id="catList"></datalist></div>
+        <div id="divSubCat"><label>書籍類別 (逗號隔開)</label><input list="subCatList" id="subCategory" placeholder="例：日本, BL"><datalist id="subCatList"></datalist></div>
 
+        <div><label>購買狀態</label><select id="buyStatus"><option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option><option>已購買</option><option>重複購買</option><option>已隱藏</option></select></div>
         <div><label>內文語言</label><input list="langList" id="language" placeholder="例：繁體中文"><datalist id="langList"></datalist></div>
         <div><label>形式 (例：實體書, 電子書)</label><input list="formatList" id="format" placeholder="可填多個"><datalist id="formatList"><option value="實體書"><option value="電子書"></datalist></div>
         <div><label>書籍位置</label><input list="platList" id="ePlatform" placeholder="例：老家, BW"><datalist id="platList"></datalist></div>
-        
-        <div id="progressGroup" style="display: contents;">
-            <div><label>目前購買集數</label><input type="number" id="volume" value="1"><div class="checkbox-group"><input type="checkbox" id="isSingleVolume" onchange="handleSingleVolume(this)"><label for="isSingleVolume" style="display:inline; font-size:12px;">此書全一集完結</label></div></div>
-            <div><label>作品狀態</label><input list="workList" id="workStatus" placeholder="例：正文完結"><datalist id="workList"></datalist></div>
-            <div><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀"><datalist id="readList"></datalist></div>
-            <div><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理"><datalist id="tagMemoryList"></datalist></div>
-            <div><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
-        </div>
-
+        <div><label>目前購買集數</label><input type="number" id="volume" value="1"><div class="checkbox-group"><input type="checkbox" id="isSingleVolume" onchange="handleSingleVolume(this)"><label for="isSingleVolume" style="display:inline; font-size:12px;">此書全一集完結</label></div></div>
+        <div><label>作品狀態</label><input list="workList" id="workStatus" placeholder="例：正文完結"><datalist id="workList"></datalist></div>
+        <div><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀"><datalist id="readList"></datalist></div>
+        <div><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理"><datalist id="tagMemoryList"></datalist></div>
+        <div><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
         <div class="form-full"><label>備註 (版本差異可寫在此)</label><textarea id="notes" rows="2" placeholder="詳細備註..."></textarea></div>
         <button class="btn-add" id="saveBtn" onclick="checkAndSave()">儲存書單至雲端</button>
-        <button class="btn-secondary form-full" id="cancelBtn" style="display:none; padding:10px;" onclick="resetForm()">取消編輯</button>
+        <button class="btn-secondary form-full" id="cancelBtn" style="display:none; padding:10px;" onclick="resetForm()">取消/結束鎖定狀態</button>
     </div>
 
     <div id="filterInfo" class="filter-info"><span id="filterText"></span><button onclick="clearFilter()">清除篩選</button></div>
@@ -105,37 +99,42 @@
         return parts.map(p => `<span class="${customClass || getPillClass(p)}" onclick="setFilter('${filterKey}','${p}')">${p}</span>`).join('');
     }
 
-    // 進入多版本新增模式
+    // 進入多版本模式
     function toggleMultiVersion() {
+        const titleVal = document.getElementById('title').value;
+        if (!titleVal) return alert("請先填寫書名，再進入新增版本模式。");
+
         isAddingVersion = true;
         isEditing = false;
-        // 隱藏主資訊欄位（書名作者類型等），避免修改
-        document.getElementById('divTitle').style.opacity = "0.5";
-        document.getElementById('divTitle').style.pointerEvents = "none";
-        document.getElementById('divAuthor').style.opacity = "0.5";
-        document.getElementById('divAuthor').style.pointerEvents = "none";
         
-        // 清空版本相關欄位
+        // 鎖定主欄位
+        ["divTitle", "divAuthor", "divCat", "divSubCat"].forEach(id => {
+            const el = document.getElementById(id);
+            el.style.opacity = "0.5";
+            el.style.pointerEvents = "none";
+        });
+
+        // 清空版本特定資訊，方便填新的
         document.getElementById('language').value = "";
         document.getElementById('format').value = "";
         document.getElementById('ePlatform').value = "";
-        document.getElementById('notes').value = "";
+        document.getElementById('notes').value = "版本差異：";
         
         document.getElementById('saveBtn').innerText = "儲存此新版本資料";
         document.getElementById('saveBtn').style.backgroundColor = "#6f42c1";
         document.getElementById('addVersionBtn').style.display = "none";
-        document.getElementById('cancelBtn').style.display = "block";
+        document.getElementById('cancelBtn').style.display = 'block';
     }
 
     async function deleteBook(title, language, format) {
         if (!confirm(`確定要刪除《${title}》的 ${language} ${format} 版本嗎？`)) return;
         showLoading(true);
-        try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', title: title, language: language, format: format.join(',') }) }); loadFromCloud(); } catch (e) { alert("失敗：" + e); }
+        try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', title: title, language: language, format: format }) }); loadFromCloud(); } catch (e) { alert("失敗：" + e); }
         showLoading(false);
     }
 
     function editBook(title, language, format) {
-        const book = allBooks.find(b => b.title === title && b.language === language && b.format.join(',') === format.join(','));
+        const book = allBooks.find(b => b.title === title && b.language === language && b.format.join(',') === format);
         if (!book) return;
         isEditing = true; isAddingVersion = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -160,9 +159,10 @@
         document.getElementById('volume').disabled = isSingle;
         
         document.getElementById('saveBtn').innerText = "更新此版本資訊";
+        document.getElementById('saveBtn').style.backgroundColor = "";
         document.getElementById('saveBtn').classList.add('editing');
-        document.getElementById('addVersionBtn').style.display = "block"; // 編輯時可選擇改為新增版本
         document.getElementById('cancelBtn').style.display = 'block';
+        document.getElementById('addVersionBtn').style.display = "block";
     }
 
     function resetForm() {
@@ -170,16 +170,17 @@
         document.getElementById('inputForm').querySelectorAll('input, select, textarea').forEach(el => {
             if (el.type !== 'checkbox') el.value = ''; if (el.id === 'volume') el.value = 1;
         });
-        document.getElementById('divTitle').style.opacity = "1";
-        document.getElementById('divTitle').style.pointerEvents = "auto";
-        document.getElementById('divAuthor').style.opacity = "1";
-        document.getElementById('divAuthor').style.pointerEvents = "auto";
+        ["divTitle", "divAuthor", "divCat", "divSubCat"].forEach(id => {
+            const el = document.getElementById(id);
+            el.style.opacity = "1";
+            el.style.pointerEvents = "auto";
+        });
         document.getElementById('isSingleVolume').checked = false;
         document.getElementById('volume').disabled = false;
         document.getElementById('saveBtn').innerText = "儲存書單至雲端";
         document.getElementById('saveBtn').style.backgroundColor = "";
         document.getElementById('saveBtn').classList.remove('editing');
-        document.getElementById('addVersionBtn').style.display = "none";
+        document.getElementById('addVersionBtn').style.display = "block";
         document.getElementById('cancelBtn').style.display = 'none';
     }
 
@@ -187,12 +188,8 @@
     
     function checkAndSave() {
         const title = document.getElementById('title').value;
-        const language = document.getElementById('language').value || '未分類';
         const format = document.getElementById('format').value;
         if (!title || !format) return alert("書名與形式必填！");
-        if (!isEditing && !isAddingVersion && allBooks.some(b => b.title === title && b.language === language && b.format.join(',') === format)) {
-            if (!confirm(`⚠️ 已有相同的書名、語言與形式，確定更新？`)) return;
-        }
         saveToCloud();
     }
 
@@ -209,7 +206,21 @@
             tags: document.getElementById('tags').value, relationId: document.getElementById('relationId').value || '-',
             notes: document.getElementById('notes').value || ''
         };
-        try { await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) }); resetForm(); loadFromCloud(); } catch (e) { alert("失敗：" + e); }
+        try { 
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) }); 
+            // 儲存後如果是新增版本模式，保留鎖定，只清空版本細節
+            if (isAddingVersion) {
+                document.getElementById('language').value = "";
+                document.getElementById('format').value = "";
+                document.getElementById('ePlatform').value = "";
+                document.getElementById('notes').value = "版本差異：";
+                alert("✅ 此版本已儲存，您可以繼續填寫下一個版本！");
+            } else {
+                alert("✅ 儲存成功！");
+                resetForm(); 
+            }
+            loadFromCloud(); 
+        } catch (e) { alert("失敗：" + e); }
         showLoading(false);
     }
 
@@ -238,7 +249,7 @@
         
         if (currentFilter.key) {
             displayBooks = allBooks.filter(b => {
-                if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value) || b.bookCategory === currentFilter.value || b.subCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value);
+                if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value) || b.bookCategory === currentFilter.value || b.subCategory.split(/[，,]/).includes(currentFilter.value);
                 if (currentFilter.key === '形式') return b.format.includes(currentFilter.value);
                 if (currentFilter.key === '位置') return b.ePlatform.split(/[，,]/).map(s => s.trim()).includes(currentFilter.value);
                 const map = {'作者':'author', '語言':'language', '關聯ID':'relationId', '購買':'buyStatus', '作品':'workStatus', '閱讀':'readProgress'};
@@ -246,9 +257,7 @@
             });
         }
         
-        if (searchTerm) { 
-            displayBooks = displayBooks.filter(b => b.title.toLowerCase().includes(searchTerm) || b.tags.some(t => t.toLowerCase().includes(searchTerm)) || b.notes.toLowerCase().includes(searchTerm));
-        }
+        if (searchTerm) { displayBooks = displayBooks.filter(b => b.title.toLowerCase().includes(searchTerm) || b.tags.some(t => t.toLowerCase().includes(searchTerm)) || b.notes.toLowerCase().includes(searchTerm)); }
 
         displayBooks.forEach(book => {
             const volDisplay = book.volume.toString().includes('(全)') ? book.volume : book.volume + '集';
@@ -256,7 +265,7 @@
 
             tbody.innerHTML += `<tr>
                 <td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
-                <td data-label="書名/作者"><strong class="edit-link" onclick="editBook('${book.title}', '${book.language}', ${JSON.stringify(book.format)})">${book.title}</strong><br><small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff;">${book.author}</small></td>
+                <td data-label="書名/作者"><strong class="edit-link" onclick="editBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">${book.title}</strong><br><small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff;">${book.author}</small></td>
                 <td data-label="形式">
                     <span class="${getPillClass(book.language)}" onclick="setFilter('語言','${book.language}')">${book.language}</span><br>
                     ${book.format.map(f => `<span class="${getPillClass(f)}" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}
@@ -273,7 +282,7 @@
                     <div class="progress-sub clickable ${buyStatusClass}" onclick="setFilter('購買','${book.buyStatus}')">(${book.buyStatus})</div>
                 </td>
                 <td data-label="備註" class="note-cell">${book.notes}</td>
-                <td data-label="操作"><button class="btn-delete" onclick="deleteBook('${book.title}', '${book.language}', ${JSON.stringify(book.format)})">刪除</button></td>
+                <td data-label="操作"><button class="btn-delete" onclick="deleteBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">刪除</button></td>
             </tr>`;
         });
     }
@@ -292,7 +301,7 @@
     }
     function updateStats() {
         const statsPanel = document.getElementById('statsPanel');
-        if (allBooks.length === 0) { statsPanel.innerHTML = "目前尚無資料。"; return; }
+        if (allBooks.length === 0) { statsPanel.innerHTML = ""; return; }
         const formatCounts = {}; const categoryCounts = {};
         allBooks.forEach(book => {
             book.format.forEach(f => { formatCounts[f] = (formatCounts[f] || 0) + 1; });
