@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V7.2</title>
+    <title>📚 ㄎㄇ的購書紀錄 V7.3</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -34,6 +34,8 @@
         .edit-link { color: #28a745 !important; font-weight: bold; cursor: pointer; text-decoration: underline; }
         .progress-text { font-weight: bold; color: #333; }
         .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        /* 鎖定樣式 */
+        .locked-field { opacity: 0.5; pointer-events: none; background-color: #f0f0f0; }
         @media (max-width: 800px) {
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
@@ -52,26 +54,36 @@
         <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📤 匯入備份檔</button>
         <input type="file" id="importFile" style="display:none" onchange="importBackup(event)">
     </div>
-    <div class="search-section"><input type="text" id="searchInput" placeholder="🔍 搜尋書名、標籤、形式或備註..." oninput="renderTable()"></div>
+    <div class="search-section"><input type="text" id="searchInput" placeholder="🔍 搜尋..." oninput="renderTable()"></div>
     
     <div class="form-group" id="inputForm">
-        <button type="button" class="version-btn" id="addVersionBtn" onclick="toggleMultiVersion()">➕ 為本書新增其他版本資料 (鎖定書名/作者)</button>
+        <button type="button" class="version-btn" id="addVersionBtn" onclick="toggleMultiVersion()">➕ 為本書新增其他版本資料 (鎖定書名/作者/作品屬性)</button>
         
         <div id="divTitle"><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
         <div id="divAuthor"><label>作者</label><input list="authorList" id="author" placeholder="例：J.K. 羅琳"><datalist id="authorList"></datalist></div>
         <div id="divCat"><label>書籍類型</label><input list="catList" id="bookCategory" placeholder="例：漫畫"><datalist id="catList"></datalist></div>
         <div id="divSubCat"><label>書籍類別 (逗號隔開)</label><input list="subCatList" id="subCategory" placeholder="例：日本, BL"><datalist id="subCatList"></datalist></div>
 
-        <div><label>購買狀態</label><select id="buyStatus"><option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option><option>已購買</option><option>重複購買</option><option>已隱藏</option></select></div>
-        <div><label>內文語言</label><input list="langList" id="language" placeholder="例：繁體中文"><datalist id="langList"></datalist></div>
-        <div><label>形式 (例：實體書, 電子書)</label><input list="formatList" id="format" placeholder="可填多個"><datalist id="formatList"><option value="實體書"><option value="電子書"></datalist></div>
-        <div><label>書籍位置</label><input list="platList" id="ePlatform" placeholder="例：老家, BW"><datalist id="platList"></datalist></div>
-        <div><label>目前購買集數</label><input type="number" id="volume" value="1"><div class="checkbox-group"><input type="checkbox" id="isSingleVolume" onchange="handleSingleVolume(this)"><label for="isSingleVolume" style="display:inline; font-size:12px;">此書全一集完結</label></div></div>
-        <div><label>作品狀態</label><input list="workList" id="workStatus" placeholder="例：正文完結"><datalist id="workList"></datalist></div>
-        <div><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀"><datalist id="readList"></datalist></div>
-        <div><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理"><datalist id="tagMemoryList"></datalist></div>
-        <div><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
+        <div id="divBuyStatus"><label>購買狀態</label><select id="buyStatus"><option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option><option>已購買</option><option>重複購買</option><option>已隱藏</option></select></div>
+        <div id="divLang"><label>內文語言</label><input list="langList" id="language" placeholder="例：繁體中文"><datalist id="langList"></datalist></div>
+        <div id="divFormat"><label>形式 (例：實體書, 電子書)</label><input list="formatList" id="format" placeholder="可填多個"><datalist id="formatList"><option value="實體書"><option value="電子書"></datalist></div>
+        <div id="divPlat"><label>書籍位置</label><input list="platList" id="ePlatform" placeholder="例：老家, BW"><datalist id="platList"></datalist></div>
+
+        <div id="divVol">
+            <label>目前購買集數</label>
+            <input type="number" id="volume" value="1">
+            <div class="checkbox-group">
+                <input type="checkbox" id="isSingleVolume" onchange="handleSingleVolume(this)">
+                <label for="isSingleVolume" style="display:inline; font-size:12px;">此書全一集完結</label>
+            </div>
+        </div>
+        <div id="divWork"><label>作品狀態</label><input list="workList" id="workStatus" placeholder="例：正文完結"><datalist id="workList"></datalist></div>
+        <div id="divRead"><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀"><datalist id="readList"></datalist></div>
+        <div id="divTags"><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理"><datalist id="tagMemoryList"></datalist></div>
+        
+        <div id="divRel" class="form-full"><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
         <div class="form-full"><label>備註 (版本差異可寫在此)</label><textarea id="notes" rows="2" placeholder="詳細備註..."></textarea></div>
+        
         <button class="btn-add" id="saveBtn" onclick="checkAndSave()">儲存書單至雲端</button>
         <button class="btn-secondary form-full" id="cancelBtn" style="display:none; padding:10px;" onclick="resetForm()">取消/結束鎖定狀態</button>
     </div>
@@ -92,7 +104,6 @@
     let isAddingVersion = false;
 
     function getPillClass(text) { return text.includes('未') ? 'tag-pill alert-pill' : 'tag-pill format-pill'; }
-
     function getMultiPillHtml(fieldValue, filterKey, customClass = '') {
         if (!fieldValue || fieldValue === '-' || fieldValue === '無') return '';
         const parts = fieldValue.split(/[，,]/).map(s => s.trim()).filter(Boolean);
@@ -107,14 +118,13 @@
         isAddingVersion = true;
         isEditing = false;
         
-        // 鎖定主欄位
-        ["divTitle", "divAuthor", "divCat", "divSubCat"].forEach(id => {
-            const el = document.getElementById(id);
-            el.style.opacity = "0.5";
-            el.style.pointerEvents = "none";
+        // 鎖定區域：書名、作者、類型、類別、作品狀態、閱讀狀態、標籤、ID
+        ["divTitle", "divAuthor", "divCat", "divSubCat", "divWork", "divRead", "divTags", "divRel"].forEach(id => {
+            document.getElementById(id).classList.add('locked-field');
         });
 
-        // 清空版本特定資訊，方便填新的
+        // 開放區域（紫色框部分）：購買狀態、內文語言、形式、位置、集數、備註
+        // 僅清空需要重新填寫的版本資訊
         document.getElementById('language').value = "";
         document.getElementById('format').value = "";
         document.getElementById('ePlatform').value = "";
@@ -170,11 +180,9 @@
         document.getElementById('inputForm').querySelectorAll('input, select, textarea').forEach(el => {
             if (el.type !== 'checkbox') el.value = ''; if (el.id === 'volume') el.value = 1;
         });
-        ["divTitle", "divAuthor", "divCat", "divSubCat"].forEach(id => {
-            const el = document.getElementById(id);
-            el.style.opacity = "1";
-            el.style.pointerEvents = "auto";
-        });
+        // 解除所有鎖定
+        document.querySelectorAll('.locked-field').forEach(el => el.classList.remove('locked-field'));
+        
         document.getElementById('isSingleVolume').checked = false;
         document.getElementById('volume').disabled = false;
         document.getElementById('saveBtn').innerText = "儲存書單至雲端";
@@ -208,8 +216,8 @@
         };
         try { 
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) }); 
-            // 儲存後如果是新增版本模式，保留鎖定，只清空版本細節
             if (isAddingVersion) {
+                // 新增版本模式：保留鎖定，僅清空紫色區域部分
                 document.getElementById('language').value = "";
                 document.getElementById('format').value = "";
                 document.getElementById('ePlatform').value = "";
