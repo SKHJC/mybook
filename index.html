@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V8.5 - 雙重篩選版</title>
+    <title>📚 ㄎㄇ的購書紀錄 V8.6 - 手機 UI 優化版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -11,6 +11,7 @@
         .backup-zone { text-align: right; margin-bottom: 10px; }
         .btn-secondary { background:#6c757d; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size: 12px; margin-left: 5px; }
         
+        /* 表單 */
         .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
         .form-full { grid-column: 1 / -1; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
@@ -21,14 +22,14 @@
         .btn-add.editing { background-color: #ffc107; color: #000; }
         .version-btn { grid-column: 1 / -1; padding: 12px; background: #6f42c1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
         
-        /* 第一層：大分類按鈕 */
+        /* 分類按鈕 */
         .category-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; padding: 10px; border-top: 1px dashed #ddd; }
         .cat-btn { background: #fff; color: #495057; padding: 8px 20px; border-radius: 20px; font-size: 15px; font-weight: bold; cursor: pointer; border: 2px solid #6c757d; transition: 0.3s; }
         .cat-btn:hover { background: #6c757d; color: #fff; }
         .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
         .cat-btn-all { border-color: #007bff; color: #007bff; }
 
-        /* 第二層：小標籤按鈕區 */
+        /* 第二層：標籤篩選 */
         .sub-filter-container { display: none; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 10px 0 20px; padding: 10px; background: #f8f9fa; border-radius: 10px; }
         .sub-cat-btn { background: #e9ecef; color: #495057; padding: 4px 12px; border-radius: 15px; font-size: 13px; cursor: pointer; border: 1px solid #dee2e6; transition: 0.2s; }
         .sub-cat-btn:hover { background: #dee2e6; }
@@ -39,6 +40,7 @@
         
         #contentSection { display: none; }
         
+        /* 表格與合併線條 */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; border: 1px solid #eee; }
         th, td { padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; border-bottom: 1px solid #eee; }
         th { background-color: #f8f9fa; color: #666; font-weight: bold; border-top: 2px solid #007bff; }
@@ -48,14 +50,12 @@
         .type-pill { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
         .edit-link { color: #28a745 !important; font-weight: bold; cursor: pointer; text-decoration: underline; }
         .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        
         .group-last-row td { border-bottom: 2px solid #ccc !important; }
         td[rowspan] { border-bottom: 2px solid #ccc !important; background-color: #fff; }
 
         .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 20px; }
         .page-btn { padding: 5px 12px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; font-size: 14px; }
         .page-btn.active { background: #007bff; color: white; border-color: #007bff; }
-        .page-btn:disabled { cursor: not-allowed; color: #ccc; }
 
         .home-btn-container { display: flex; justify-content: center; margin: 20px 0; }
         .btn-home { background: #007bff; color: white; padding: 10px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; }
@@ -67,13 +67,61 @@
         .locked-field { opacity: 0.5; pointer-events: none; background-color: #f0f0f0; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
 
+        /* --- 手機版專屬優化 CSS --- */
         @media (max-width: 800px) {
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
-            tr { border: 1px solid #ccc; margin-bottom: 15px; border-radius: 8px; padding: 10px; background: #fff; }
-            td { border: none; position: relative; padding-left: 40%; margin-bottom: 8px; }
-            td:before { position: absolute; left: 10px; width: 35%; font-weight: bold; content: attr(data-label); color: #007bff; }
-            td[rowspan] { border-bottom: none !important; }
+            
+            /* 每本書(包含所有版本)的大容器 */
+            .group-row-container {
+                border: 2px solid #ccc;
+                margin-bottom: 20px;
+                border-radius: 12px;
+                background: #fff;
+                overflow: hidden;
+            }
+
+            /* 通用單元格樣式 */
+            td { 
+                border: none; 
+                position: relative; 
+                padding-left: 35% !important; 
+                padding-top: 10px;
+                padding-bottom: 10px;
+                min-height: 25px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            td:before { 
+                position: absolute; 
+                left: 10px; 
+                width: 30%; 
+                font-weight: bold; 
+                color: #007bff;
+                content: attr(data-label); 
+            }
+
+            /* 手機版：針對 rowspan 格子的特殊處理 */
+            /* 我們讓合併的內容永遠置頂顯示一次 */
+            .mobile-group-header {
+                background: #f8f9fa;
+                border-bottom: 2px solid #007bff;
+            }
+            .mobile-group-header td {
+                padding-left: 35% !important;
+            }
+
+            /* 不同版本的差分顯示區 */
+            .version-diff-block {
+                border-bottom: 2px dashed #eee;
+                background-color: #fdfdfd;
+            }
+            .version-diff-block:last-child {
+                border-bottom: none;
+            }
+
+            /* 隱藏手機版中重複且無意義的格位 */
+            td[rowspan] { display: none; } /* 隱藏原本表格結構中的 rowspan 格子 */
+            .mobile-show-merged { display: block !important; } /* 僅顯示我們特製的合併資訊格 */
         }
     </style>
 </head>
@@ -111,7 +159,6 @@
     </div>
 
     <div id="categoryPanel" class="category-container"></div>
-
     <div id="subFilterPanel" class="sub-filter-container"></div>
 
     <div class="search-section">
@@ -147,7 +194,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec"; 
     let allBooks = []; 
     let currentFilter = { key: null, value: null };
-    let secondFilter = null; // 第二重篩選標籤
+    let secondFilter = null;
     let lastSavedTitle = null;
     let currentPage = 1;
     const itemsPerPage = 5;
@@ -159,7 +206,6 @@
         return parts.map(p => `<span class="${customClass || getPillClass(p)}" onclick="setFilter('${filterKey}','${p}')">${p}</span>`).join('');
     }
 
-    // --- 第一層按鈕生成 ---
     function updateCategoryButtons() {
         const panel = document.getElementById('categoryPanel');
         const categories = [...new Set(allBooks.map(b => b.bookCategory))].filter(Boolean).sort();
@@ -178,78 +224,51 @@
         });
     }
 
-    // --- 第二層按鈕生成 (基於目前的篩選結果) ---
     function updateSubFilterButtons() {
         const panel = document.getElementById('subFilterPanel');
         if (!currentFilter.key && !lastSavedTitle) { panel.style.display = 'none'; return; }
-
-        // 先找出目前大分類下的所有書
         let baseSet = allBooks;
         if (currentFilter.key === '類型') baseSet = allBooks.filter(b => b.bookCategory === currentFilter.value);
-        
-        // 提取這些書中出現過的所有標籤與子類別
         let subTags = new Set();
         baseSet.forEach(b => {
             if (b.subCategory) b.subCategory.split(/[，,]/).forEach(s => subTags.add(s.trim()));
             if (b.tags) b.tags.forEach(t => subTags.add(t.trim()));
         });
         const sortedSubTags = Array.from(subTags).filter(Boolean).sort();
-
         if (sortedSubTags.length === 0) { panel.style.display = 'none'; return; }
-
         panel.style.display = 'flex';
         panel.innerHTML = '<span style="font-size:12px; color:#666; width:100%; text-align:center; margin-bottom:5px;">進階篩選標籤：</span>';
-        
         sortedSubTags.forEach(tag => {
             const btn = document.createElement('button');
             btn.className = 'sub-cat-btn' + (secondFilter === tag ? ' active' : '');
             btn.innerText = tag;
-            btn.onclick = () => {
-                secondFilter = (secondFilter === tag) ? null : tag; // 切換模式
-                currentPage = 1;
-                renderTable();
-                updateSubFilterButtons();
-            };
+            btn.onclick = () => { secondFilter = (secondFilter === tag) ? null : tag; currentPage = 1; renderTable(); updateSubFilterButtons(); };
             panel.appendChild(btn);
         });
     }
 
     function setFilter(key, value) { 
-        lastSavedTitle = null;
-        currentFilter = { key, value }; 
+        lastSavedTitle = null; currentFilter = { key, value }; 
         document.getElementById('contentSection').style.display = 'block';
-        renderTable(); 
-        updateCategoryButtons();
-        updateSubFilterButtons();
+        renderTable(); updateCategoryButtons(); updateSubFilterButtons();
         document.getElementById('contentSection').scrollIntoView({ behavior: 'smooth' });
     }
 
     function handleSearch(val) {
-        lastSavedTitle = null;
-        currentPage = 1;
-        if (val.trim() !== '') {
-            document.getElementById('contentSection').style.display = 'block';
-            renderTable();
-        } else if (!currentFilter.key) {
-            document.getElementById('contentSection').style.display = 'none';
-        } else {
-            renderTable();
-        }
+        lastSavedTitle = null; currentPage = 1;
+        if (val.trim() !== '') { document.getElementById('contentSection').style.display = 'block'; renderTable(); }
+        else if (!currentFilter.key) { document.getElementById('contentSection').style.display = 'none'; }
+        else { renderTable(); }
     }
 
     function clearFilter() { 
-        currentFilter = { key: null, value: null }; 
-        secondFilter = null;
-        lastSavedTitle = null;
-        currentPage = 1;
+        currentFilter = { key: null, value: null }; secondFilter = null; lastSavedTitle = null; currentPage = 1;
         document.getElementById('contentSection').style.display = 'none'; 
         document.getElementById('subFilterPanel').style.display = 'none';
-        document.getElementById('searchInput').value = '';
-        updateCategoryButtons();
+        document.getElementById('searchInput').value = ''; updateCategoryButtons();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // --- 編輯與儲存邏輯 (維持 V8.4) ---
     function toggleMultiVersion() {
         const titleVal = document.getElementById('title').value;
         if (!titleVal) return alert("請先填寫書名，再進入新增版本模式。");
@@ -308,8 +327,7 @@
     function handleSingleVolume(cb) { const volInput = document.getElementById('volume'); volInput.disabled = cb.checked; if (cb.checked) volInput.value = 1; }
     
     function checkAndSave() {
-        const title = document.getElementById('title').value;
-        const format = document.getElementById('format').value;
+        const title = document.getElementById('title').value; const format = document.getElementById('format').value;
         const cat = document.getElementById('bookCategory').value;
         if (!title || !format || !cat) return alert("書名、類型與形式必填！");
         saveToCloud();
@@ -332,14 +350,10 @@
         };
         try { 
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) }); 
-            alert("✅ 儲存成功！");
-            lastSavedTitle = title;
-            currentPage = 1;
-            resetForm();
-            await loadFromCloud();
+            alert("✅ 儲存成功！"); lastSavedTitle = title; currentPage = 1;
+            resetForm(); await loadFromCloud();
             document.getElementById('contentSection').style.display = 'block';
-            renderTable();
-            updateSubFilterButtons();
+            renderTable(); updateSubFilterButtons();
             document.getElementById('contentSection').scrollIntoView({ behavior: 'smooth' });
         } catch (e) { alert("失敗：" + e); }
         showLoading(false);
@@ -369,36 +383,20 @@
         tbody.innerHTML = ''; 
         let filteredBooks = allBooks;
         
-        // 核心雙重篩選與搜尋邏輯
-        if (lastSavedTitle) {
-            filteredBooks = allBooks.filter(b => b.title === lastSavedTitle);
-        } else {
-            // 第一層：大分類
+        if (lastSavedTitle) { filteredBooks = allBooks.filter(b => b.title === lastSavedTitle); } 
+        else {
             if (currentFilter.key === '類型') filteredBooks = allBooks.filter(b => b.bookCategory === currentFilter.value);
-            
-            // 第二層：標籤/類別
             if (secondFilter) {
                 filteredBooks = filteredBooks.filter(b => {
-                    const tagSet = new Set([
-                        ...(b.subCategory ? b.subCategory.split(/[，,]/).map(s => s.trim()) : []),
-                        ...b.tags
-                    ]);
+                    const tagSet = new Set([...(b.subCategory ? b.subCategory.split(/[，,]/).map(s => s.trim()) : []), ...b.tags]);
                     return tagSet.has(secondFilter);
                 });
             }
-
-            // 搜尋過濾
             if (searchTerm) {
-                filteredBooks = filteredBooks.filter(b => 
-                    b.title.toLowerCase().includes(searchTerm) || 
-                    b.author.toLowerCase().includes(searchTerm) ||
-                    b.tags.some(t => t.toLowerCase().includes(searchTerm)) ||
-                    b.notes.toLowerCase().includes(searchTerm)
-                );
+                filteredBooks = filteredBooks.filter(b => b.title.toLowerCase().includes(searchTerm) || b.author.toLowerCase().includes(searchTerm) || b.tags.some(t => t.toLowerCase().includes(searchTerm)) || b.notes.toLowerCase().includes(searchTerm));
             }
         }
 
-        // 分組跨列邏輯
         const groups = [];
         filteredBooks.forEach(book => {
             const key = book.title + "_" + book.author;
@@ -414,6 +412,9 @@
         const pageGroups = groups.slice(startIdx, startIdx + itemsPerPage);
 
         pageGroups.forEach(group => {
+            // 在手機版上，我們將這一組書的所有版本包在一個 div 容器中
+            tbody.innerHTML += `<div class="group-row-container">`;
+            
             group.books.forEach((book, index) => {
                 const isFirst = index === 0;
                 const rowSpan = group.books.length;
@@ -421,7 +422,23 @@
                 const buyStatusClass = book.buyStatus.includes('未') ? 'alert-text' : '';
                 const authorDisplay = book.nationality ? `${book.author} (${book.nationality})` : book.author;
 
-                let rowHtml = `<tr class="${index === group.books.length - 1 ? 'group-last-row' : ''}">
+                // 電腦版正常顯示 tr，手機版會透過 CSS 調整 tr
+                let rowHtml = `<tr class="${index === 0 ? 'mobile-group-header' : 'version-diff-block'} ${index === group.books.length - 1 ? 'group-last-row' : ''}">`;
+
+                // --- 跨列合併內容 (手機版僅在 index 0 顯示一次，但我們需要特別處理標籤) ---
+                if (isFirst) {
+                    // 手機版特有的合併區頭部格
+                    rowHtml += `
+                        <td class="mobile-show-merged" data-label="書名/作者" style="display:none;">
+                            <strong class="edit-link" onclick="editBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">${book.title}</strong><br>
+                            <small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff; text-decoration:underline;">${authorDisplay}</small>
+                        </td>
+                        <td class="mobile-show-merged" data-label="閱讀狀態" style="display:none;"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
+                    `;
+                }
+
+                // --- 差分內容 ---
+                rowHtml += `
                     <td data-label="書籍位置">${getMultiPillHtml(book.ePlatform, '位置')}</td>
                     <td data-label="形式">
                         <span class="${getPillClass(book.language)}" onclick="setFilter('語言','${book.language}')">${book.language}</span><br>
@@ -430,16 +447,18 @@
                     <td data-label="購買狀況">
                         <span class="progress-text">${volDisplay} ${book.workStatus}</span>
                         <div class="progress-sub clickable ${buyStatusClass}" onclick="setFilter('購買','${book.buyStatus}')">(${book.buyStatus})</div>
-                    </td>`;
+                    </td>
+                `;
 
+                // --- 電腦版用的 rowspan 格子 (手機版會隱藏) ---
                 if (isFirst) {
                     rowHtml += `
-                        <td data-label="閱讀狀態" rowspan="${rowSpan}"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
-                        <td data-label="書名/作者" rowspan="${rowSpan}">
+                        <td data-label="閱讀狀態" rowspan="${rowSpan}" class="pc-only"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
+                        <td data-label="書名/作者" rowspan="${rowSpan}" class="pc-only">
                             <strong class="edit-link" onclick="editBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">${book.title}</strong><br>
                             <small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff; text-decoration:underline;">${authorDisplay}</small>
                         </td>
-                        <td data-label="標籤" rowspan="${rowSpan}">
+                        <td data-label="標籤/類別" rowspan="${rowSpan}">
                             <span class="tag-pill type-pill" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</span>
                             ${getMultiPillHtml(book.subCategory, '標籤', 'tag-pill type-pill')}
                             ${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}
@@ -449,35 +468,26 @@
                         <td data-label="操作" rowspan="${rowSpan}"><button class="btn-delete" onclick="deleteBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">刪除</button></td>
                     `;
                 }
-                tbody.innerHTML += rowHtml + `</tr>`;
+                rowHtml += `</tr>`;
+                tbody.innerHTML += rowHtml;
             });
+            tbody.innerHTML += `</div>`; // 閉合大容器
         });
         renderPagination(totalPages);
     }
 
     function renderPagination(totalPages) {
-        const paginDiv = document.getElementById('pagination');
-        paginDiv.innerHTML = '';
-        if (totalPages <= 1) return;
-
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'page-btn'; prevBtn.innerText = '◀ 上一頁';
-        prevBtn.disabled = currentPage === 1;
-        prevBtn.onclick = () => { currentPage--; renderTable(); window.scrollTo({top: document.getElementById('contentSection').offsetTop, behavior:'smooth'}); };
+        const paginDiv = document.getElementById('pagination'); paginDiv.innerHTML = ''; if (totalPages <= 1) return;
+        const prevBtn = document.createElement('button'); prevBtn.className = 'page-btn'; prevBtn.innerText = '◀';
+        prevBtn.disabled = currentPage === 1; prevBtn.onclick = () => { currentPage--; renderTable(); window.scrollTo({top: document.getElementById('contentSection').offsetTop, behavior:'smooth'}); };
         paginDiv.appendChild(prevBtn);
-
         for (let i = 1; i <= totalPages; i++) {
-            const btn = document.createElement('button');
-            btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
-            btn.innerText = i;
+            const btn = document.createElement('button'); btn.className = 'page-btn' + (i === currentPage ? ' active' : ''); btn.innerText = i;
             btn.onclick = () => { currentPage = i; renderTable(); window.scrollTo({top: document.getElementById('contentSection').offsetTop, behavior:'smooth'}); };
             paginDiv.appendChild(btn);
         }
-
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'page-btn'; nextBtn.innerText = '下一頁 ▶';
-        nextBtn.disabled = currentPage === totalPages;
-        nextBtn.onclick = () => { currentPage++; renderTable(); window.scrollTo({top: document.getElementById('contentSection').offsetTop, behavior:'smooth'}); };
+        const nextBtn = document.createElement('button'); nextBtn.className = 'page-btn'; nextBtn.innerText = '▶';
+        nextBtn.disabled = currentPage === totalPages; nextBtn.onclick = () => { currentPage++; renderTable(); window.scrollTo({top: document.getElementById('contentSection').offsetTop, behavior:'smooth'}); };
         paginDiv.appendChild(nextBtn);
     }
 
