@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V12.9 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V13.0 Final</title>
     <style>
-        /* --- 承襲 V12.8 UI 樣式 --- */
+        /* --- 承襲 V12.9 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -35,9 +35,13 @@
         .sub-cat-btn { background: #e9ecef; color: #495057; padding: 6px 16px; border-radius: 20px; font-size: 14px; cursor: pointer; border: 1px solid #dee2e6; transition: 0.2s; }
         .sub-cat-btn.active { background: #17a2b8; color: #fff; border-color: #17a2b8; }
         
+        /* Pill 樣式 */
         .tag-pill { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 13px; background: #e2f3f5; color: #0c5460; margin-right: 5px; margin-bottom: 5px; cursor: pointer; border: none; transition: 0.1s; vertical-align: middle; }
+        .tag-pill:hover { opacity: 0.8; }
         .pill-main { background: #007bff !important; color: white !important; }
         .pill-sub { background: #d4edda !important; color: #155724 !important; }
+        /* 關聯 IP 標籤專屬樣式 (深紫色) */
+        .pill-relation { background: #6f42c1 !important; color: white !important; font-weight: bold; }
         .alert-pill { background: #dc3545 !important; color: white !important; font-weight: bold; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; table-layout: fixed; }
@@ -178,11 +182,9 @@
         document.getElementById('loading').style.display='none';
     }
 
-    /* --- [優化核心] 儲存成功後自動跳轉預覽 --- */
     async function checkAndSave(mode) {
         const titleVal = document.getElementById('title').value;
         if (!titleVal) { alert("書名為必填！"); return; }
-        
         document.getElementById('loading').style.display='flex';
         const bookData = {
             action: 'save',
@@ -205,22 +207,15 @@
             relationId: document.getElementById('relationId').value,
             notes: document.getElementById('notes').value
         };
-
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
             alert(mode === 'update' ? "更新成功！" : "儲存成功！");
-            
-            // 關鍵跳轉邏輯：自動搜尋該書名以提供預覽
             const searchName = titleVal;
             resetForm(); 
             await loadFromCloud();
-            
             document.getElementById('searchInput').value = searchName;
             applyFilters(true);
-            
-            // 平滑滾動至結果區
             window.scrollTo({ top: document.getElementById('contentSection').offsetTop - 50, behavior: 'smooth' });
-            
         } catch (e) { alert("操作失敗"); }
         document.getElementById('loading').style.display='none';
     }
@@ -230,7 +225,6 @@
         if (!book) return;
         editingTarget = book;
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        
         document.getElementById('title').value = book.title;
         document.getElementById('author').value = book.author;
         document.getElementById('nationality').value = book.nationality;
@@ -247,7 +241,6 @@
         document.getElementById('tags').value = book.tags.join(', ');
         document.getElementById('relationId').value = book.relationId;
         document.getElementById('notes').value = book.notes;
-        
         document.getElementById('saveBtn').style.display = 'none';
         document.getElementById('updateBtn').style.display = 'block';
         document.getElementById('cancelBtn').style.display = 'block';
@@ -255,7 +248,7 @@
     }
 
     function toggleMultiVersion() {
-        if (!editingTarget) { alert("請先修改現有書目，再新增其他版本。"); return; }
+        if (!editingTarget) { alert("請先點擊修改，再新增版本。"); return; }
         const lockFields = ['title', 'author', 'nationality', 'bookCategory', 'relationId'];
         lockFields.forEach(id => document.getElementById(id).classList.add('locked-field'));
         document.getElementById('saveBtn').style.display = 'block';
@@ -276,7 +269,6 @@
         editingTarget = null;
     }
 
-    /* --- 其餘篩選、統計與 UI 邏輯 --- */
     function updateDatalists() {
         const getU = (k) => [...new Set(allBooks.map(b => b[k]))].filter(v => v && v !== '-');
         const fill = (id, list) => {
@@ -296,7 +288,6 @@
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         let filtered = allBooks;
         if (!currentFilter.key && !searchTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
-        
         if (currentFilter.key === '類型') filtered = allBooks.filter(b => b.bookCategory === currentFilter.value);
         if (currentFilter.key === '作者') filtered = allBooks.filter(b => b.author === currentFilter.value);
         if (currentFilter.key === '位置') filtered = allBooks.filter(b => b.ePlatform === currentFilter.value);
@@ -316,7 +307,6 @@
             });
         }
         if (searchTerm) filtered = filtered.filter(b => b.title.toLowerCase().includes(searchTerm) || b.author.toLowerCase().includes(searchTerm) || b.notes.toLowerCase().includes(searchTerm));
-
         const groups = [];
         filtered.forEach(b => {
             const k = b.title + "_" + b.author;
@@ -343,6 +333,7 @@
         p.innerHTML = `<div class="stats-item">總圖書量：<strong>${allBooks.length}</strong> 本</div><div class="stats-item">形式統計：<strong>${formatStr.trim()}</strong></div><div class="stats-item">書籍類型統計：<strong>${catStr.trim()}</strong></div>`;
     }
 
+    /* --- 修復部分：將關聯 IP 標籤補回 renderTable --- */
     function renderTable() {
         const tbody = document.getElementById('bookTableBody');
         tbody.innerHTML = '';
@@ -356,7 +347,9 @@
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 groupHtml += `<tr><td data-label="操作"><button style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="editBook(${params})">修改</button><button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-left:4px;" onclick="deleteBook(${params})">刪除</button></td><td data-label="書名/作者"><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorFull}</small></td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況"><div>${book.volume} ${book.workStatus}</div><span class="${getPillClass(book.buyStatus)}" onclick="setFilter('購買狀態','${book.buyStatus}')">(${book.buyStatus})</span></td>`;
                 if (isFirst) {
-                    groupHtml += `<td data-label="標籤"><span class="${getPillClass(book.bookCategory, true)}" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</span>${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td><td data-label="備註">${book.notes ? `<div class="notes-box">${book.notes}</div>` : '-'}</td>`;
+                    // --- 補上關聯 IP 標籤 (深紫色) ---
+                    const relationPill = book.relationId ? `<span class="tag-pill pill-relation">${book.relationId}</span>` : '';
+                    groupHtml += `<td data-label="標籤">${relationPill}<span class="${getPillClass(book.bookCategory, true)}" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</span>${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td><td data-label="備註">${book.notes ? `<div class="notes-box">${book.notes}</div>` : '-'}</td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
                 groupHtml += `</tr>`;
             });
