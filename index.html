@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V8.6 - 手機 UI 優化版</title>
+    <title>📚 ㄎㄇ的購書紀錄 V8.9</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -11,7 +11,7 @@
         .backup-zone { text-align: right; margin-bottom: 10px; }
         .btn-secondary { background:#6c757d; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size: 12px; margin-left: 5px; }
         
-        /* 表單 */
+        /* 表單區域 */
         .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
         .form-full { grid-column: 1 / -1; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
@@ -22,14 +22,13 @@
         .btn-add.editing { background-color: #ffc107; color: #000; }
         .version-btn { grid-column: 1 / -1; padding: 12px; background: #6f42c1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
         
-        /* 分類按鈕 */
+        /* 導航按鈕 */
         .category-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; padding: 10px; border-top: 1px dashed #ddd; }
         .cat-btn { background: #fff; color: #495057; padding: 8px 20px; border-radius: 20px; font-size: 15px; font-weight: bold; cursor: pointer; border: 2px solid #6c757d; transition: 0.3s; }
         .cat-btn:hover { background: #6c757d; color: #fff; }
         .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
         .cat-btn-all { border-color: #007bff; color: #007bff; }
 
-        /* 第二層：標籤篩選 */
         .sub-filter-container { display: none; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 10px 0 20px; padding: 10px; background: #f8f9fa; border-radius: 10px; }
         .sub-cat-btn { background: #e9ecef; color: #495057; padding: 4px 12px; border-radius: 15px; font-size: 13px; cursor: pointer; border: 1px solid #dee2e6; transition: 0.2s; }
         .sub-cat-btn:hover { background: #dee2e6; }
@@ -40,18 +39,24 @@
         
         #contentSection { display: none; }
         
-        /* 表格與合併線條 */
+        /* 表格結構與線條修正 (圖一) */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; border: 1px solid #eee; }
-        th, td { padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; border-bottom: 1px solid #eee; }
-        th { background-color: #f8f9fa; color: #666; font-weight: bold; border-top: 2px solid #007bff; }
+        th, td { padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; }
+        th { background-color: #f8f9fa; color: #666; font-weight: bold; border-top: 2px solid #007bff; border-bottom: 1px solid #eee; }
+        
+        /* 版本間的線條：淡灰色細線 */
+        .version-inner-row td { border-bottom: 1px solid #f0f0f0; }
+        /* 不同書籍間的分界線：粗灰色實線 */
+        .group-boundary-row td { border-bottom: 2px solid #ccc !important; }
+        td[rowspan] { border-bottom: 2px solid #ccc !important; background-color: #fff; }
+
+        /* 元件樣式 */
         .tag-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #e9ecef; margin-right: 4px; margin-bottom: 4px; cursor: pointer; border: 1px solid #ccc; }
         .format-pill { background: #d1ecf1; color: #007bff; border: 1px solid #bee5eb; text-decoration: none; }
         .alert-pill { background: #f8d7da !important; color: #dc3545 !important; border: 1px solid #f5c6cb !important; }
         .type-pill { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
         .edit-link { color: #28a745 !important; font-weight: bold; cursor: pointer; text-decoration: underline; }
         .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        .group-last-row td { border-bottom: 2px solid #ccc !important; }
-        td[rowspan] { border-bottom: 2px solid #ccc !important; background-color: #fff; }
 
         .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 20px; }
         .page-btn { padding: 5px 12px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; font-size: 14px; }
@@ -67,61 +72,29 @@
         .locked-field { opacity: 0.5; pointer-events: none; background-color: #f0f0f0; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
 
-        /* --- 手機版專屬優化 CSS --- */
+        /* --- 手機版專屬優化 (Media Query) --- */
         @media (max-width: 800px) {
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
             
-            /* 每本書(包含所有版本)的大容器 */
-            .group-row-container {
-                border: 2px solid #ccc;
-                margin-bottom: 20px;
-                border-radius: 12px;
-                background: #fff;
-                overflow: hidden;
-            }
+            .group-row-container { border: 2px solid #ccc; margin-bottom: 20px; border-radius: 12px; background: #fff; overflow: hidden; }
+            td { border: none; position: relative; padding-left: 35% !important; padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+            td:before { position: absolute; left: 10px; width: 30%; font-weight: bold; color: #007bff; content: attr(data-label); }
 
-            /* 通用單元格樣式 */
-            td { 
-                border: none; 
-                position: relative; 
-                padding-left: 35% !important; 
-                padding-top: 10px;
-                padding-bottom: 10px;
-                min-height: 25px;
-                border-bottom: 1px solid #f0f0f0;
-            }
-            td:before { 
-                position: absolute; 
-                left: 10px; 
-                width: 30%; 
-                font-weight: bold; 
-                color: #007bff;
-                content: attr(data-label); 
-            }
+            .mobile-group-header { background: #f8f9fa; border-bottom: 2px solid #007bff; }
+            .version-diff-block { border-bottom: 2px dashed #eee; background-color: #fdfdfd; padding-bottom: 5px; }
+            .version-diff-block:last-of-type { border-bottom: none; }
 
-            /* 手機版：針對 rowspan 格子的特殊處理 */
-            /* 我們讓合併的內容永遠置頂顯示一次 */
-            .mobile-group-header {
-                background: #f8f9fa;
-                border-bottom: 2px solid #007bff;
-            }
-            .mobile-group-header td {
-                padding-left: 35% !important;
-            }
+            td[rowspan] { display: none; } 
+            .mobile-show-merged { display: block !important; } 
+            
+            /* 手機版備註與標題修正 (圖二 & 最新修正) */
+            .mobile-notes-cell { background: #fff9e6; color: #555; font-size: 12px; border-top: 1px solid #ffeeba; }
+            .notes-header { font-weight: bold; font-style: normal; color: #007bff; } /* 標題不斜體 */
+            .notes-content { font-style: italic; } /* 內容斜體 */
 
-            /* 不同版本的差分顯示區 */
-            .version-diff-block {
-                border-bottom: 2px dashed #eee;
-                background-color: #fdfdfd;
-            }
-            .version-diff-block:last-child {
-                border-bottom: none;
-            }
-
-            /* 隱藏手機版中重複且無意義的格位 */
-            td[rowspan] { display: none; } /* 隱藏原本表格結構中的 rowspan 格子 */
-            .mobile-show-merged { display: block !important; } /* 僅顯示我們特製的合併資訊格 */
+            .mobile-delete-cell { text-align: right; padding-left: 10px !important; border-bottom: none; }
+            .mobile-delete-cell:before { content: ""; }
         }
     </style>
 </head>
@@ -169,6 +142,7 @@
         <table id="bookTable">
             <thead>
                 <tr>
+                    <th style="width: 60px;">操作</th>
                     <th style="width: 120px;">書籍位置</th>
                     <th style="width: 100px;">形式</th>
                     <th style="width: 150px;">購買狀況</th>
@@ -176,7 +150,6 @@
                     <th style="width: 150px;">書名/作者</th>
                     <th style="width: 150px;">標籤/類別</th>
                     <th>備註</th>
-                    <th style="width: 60px;">操作</th>
                 </tr>
             </thead>
             <tbody id="bookTableBody"></tbody>
@@ -412,30 +385,31 @@
         const pageGroups = groups.slice(startIdx, startIdx + itemsPerPage);
 
         pageGroups.forEach(group => {
-            // 在手機版上，我們將這一組書的所有版本包在一個 div 容器中
             tbody.innerHTML += `<div class="group-row-container">`;
-            
             group.books.forEach((book, index) => {
                 const isFirst = index === 0;
                 const rowSpan = group.books.length;
                 const volDisplay = book.volume.toString().includes('(全)') ? book.volume : book.volume + '集';
                 const buyStatusClass = book.buyStatus.includes('未') ? 'alert-text' : '';
                 const authorDisplay = book.nationality ? `${book.author} (${book.nationality})` : book.author;
+                const delKey = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
 
-                // 電腦版正常顯示 tr，手機版會透過 CSS 調整 tr
-                let rowHtml = `<tr class="${index === 0 ? 'mobile-group-header' : 'version-diff-block'} ${index === group.books.length - 1 ? 'group-last-row' : ''}">`;
+                // 圖一：版本間線條修正 (淡細線)
+                let rowHtml = `<tr class="${index === 0 ? 'mobile-group-header' : 'version-inner-row version-diff-block'} ${index === group.books.length - 1 ? 'group-boundary-row' : ''}">`;
 
-                // --- 跨列合併內容 (手機版僅在 index 0 顯示一次，但我們需要特別處理標籤) ---
+                // --- 跨列合併內容 (手機版僅在 index 0 顯示一次) ---
                 if (isFirst) {
-                    // 手機版特有的合併區頭部格
                     rowHtml += `
                         <td class="mobile-show-merged" data-label="書名/作者" style="display:none;">
-                            <strong class="edit-link" onclick="editBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">${book.title}</strong><br>
+                            <strong class="edit-link" onclick="editBook(${delKey})">${book.title}</strong><br>
                             <small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff; text-decoration:underline;">${authorDisplay}</small>
                         </td>
                         <td class="mobile-show-merged" data-label="閱讀狀態" style="display:none;"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
                     `;
                 }
+
+                // --- 圖三 & 圖四：操作移至最前，每個版本獨立 ---
+                rowHtml += `<td data-label="操作" class="mobile-delete-cell"><button class="btn-delete" onclick="deleteBook(${delKey})">刪除</button></td>`;
 
                 // --- 差分內容 ---
                 rowHtml += `
@@ -450,12 +424,12 @@
                     </td>
                 `;
 
-                // --- 電腦版用的 rowspan 格子 (手機版會隱藏) ---
+                // --- 電腦版跨列區域 ---
                 if (isFirst) {
                     rowHtml += `
                         <td data-label="閱讀狀態" rowspan="${rowSpan}" class="pc-only"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
                         <td data-label="書名/作者" rowspan="${rowSpan}" class="pc-only">
-                            <strong class="edit-link" onclick="editBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">${book.title}</strong><br>
+                            <strong class="edit-link" onclick="editBook(${delKey})">${book.title}</strong><br>
                             <small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff; text-decoration:underline;">${authorDisplay}</small>
                         </td>
                         <td data-label="標籤/類別" rowspan="${rowSpan}">
@@ -464,14 +438,15 @@
                             ${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}
                             <div style="margin-top:4px"><span class="tag-pill" style="background:#fff" onclick="setFilter('關聯ID','${book.relationId}')">#${book.relationId}</span></div>
                         </td>
-                        <td data-label="備註" rowspan="${rowSpan}">${book.notes}</td>
-                        <td data-label="操作" rowspan="${rowSpan}"><button class="btn-delete" onclick="deleteBook('${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}')">刪除</button></td>
+                        <td data-label="備註" rowspan="${rowSpan}" class="mobile-notes-cell mobile-show-merged">
+                           <span class="notes-content">${book.notes}</span>
+                        </td>
                     `;
                 }
                 rowHtml += `</tr>`;
                 tbody.innerHTML += rowHtml;
             });
-            tbody.innerHTML += `</div>`; // 閉合大容器
+            tbody.innerHTML += `</div>`;
         });
         renderPagination(totalPages);
     }
@@ -492,7 +467,7 @@
     }
 
     async function deleteBook(title, language, format) {
-        if (!confirm(`確定要刪除嗎？`)) return;
+        if (!confirm(`確定要刪除此版本嗎？\n《${title}》\n語言：${language}\n形式：${format}`)) return;
         showLoading(true);
         try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', title, language, format }) }); loadFromCloud(); } catch (e) { alert(e); }
         showLoading(false);
