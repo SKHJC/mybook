@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V13.0 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V13.1 Final</title>
     <style>
-        /* --- 承襲 V12.9 UI 樣式 --- */
+        /* --- 承襲 V13.0 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -15,9 +15,7 @@
         label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #555; }
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; background: white; }
         
-        /* 鎖定欄位樣式 */
         .locked-field { background-color: #e9ecef !important; cursor: not-allowed; border: 1px solid #ccc; color: #6c757d; }
-
         .checkbox-container { display: flex; align-items: center; gap: 5px; margin-top: 8px; cursor: pointer; user-select: none; color: #555; font-size: 14px; }
         .checkbox-container input { width: 18px; height: 18px; cursor: pointer; margin: 0; }
 
@@ -35,12 +33,10 @@
         .sub-cat-btn { background: #e9ecef; color: #495057; padding: 6px 16px; border-radius: 20px; font-size: 14px; cursor: pointer; border: 1px solid #dee2e6; transition: 0.2s; }
         .sub-cat-btn.active { background: #17a2b8; color: #fff; border-color: #17a2b8; }
         
-        /* Pill 樣式 */
         .tag-pill { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 13px; background: #e2f3f5; color: #0c5460; margin-right: 5px; margin-bottom: 5px; cursor: pointer; border: none; transition: 0.1s; vertical-align: middle; }
         .tag-pill:hover { opacity: 0.8; }
         .pill-main { background: #007bff !important; color: white !important; }
         .pill-sub { background: #d4edda !important; color: #155724 !important; }
-        /* 關聯 IP 標籤專屬樣式 (深紫色) */
         .pill-relation { background: #6f42c1 !important; color: white !important; font-weight: bold; }
         .alert-pill { background: #dc3545 !important; color: white !important; font-weight: bold; }
         
@@ -74,7 +70,7 @@
 </head>
 <body>
 
-<div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
+<div id="loading" class="loading-overlay">⚙️ 正在同步中...</div>
 
 <div class="container">
     <h1>📚 ㄎㄇ的購書紀錄</h1>
@@ -254,6 +250,7 @@
         document.getElementById('saveBtn').style.display = 'block';
         document.getElementById('saveBtn').innerText = "儲存為新版本";
         document.getElementById('updateBtn').style.display = 'none';
+        document.getElementById('multiVersionBtn').style.display = 'none';
         editingTarget = null;
     }
 
@@ -266,6 +263,7 @@
         document.getElementById('saveBtn').innerText = "儲存書單至雲端";
         document.getElementById('updateBtn').style.display = 'none';
         document.getElementById('cancelBtn').style.display = 'none';
+        document.getElementById('multiVersionBtn').style.display = 'block';
         editingTarget = null;
     }
 
@@ -294,6 +292,7 @@
         if (currentFilter.key === '形式') filtered = allBooks.filter(b => b.format.includes(currentFilter.value));
         if (currentFilter.key === '購買狀態') filtered = allBooks.filter(b => b.buyStatus === currentFilter.value);
         if (currentFilter.key === '閱讀狀態') filtered = allBooks.filter(b => b.readProgress === currentFilter.value);
+        if (currentFilter.key === '關聯IP') filtered = allBooks.filter(b => b.relationId === currentFilter.value);
         if (currentFilter.key === '小標籤') {
             filtered = allBooks.filter(b => {
                 const tags = [...(b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : []), ...b.tags];
@@ -333,7 +332,6 @@
         p.innerHTML = `<div class="stats-item">總圖書量：<strong>${allBooks.length}</strong> 本</div><div class="stats-item">形式統計：<strong>${formatStr.trim()}</strong></div><div class="stats-item">書籍類型統計：<strong>${catStr.trim()}</strong></div>`;
     }
 
-    /* --- 修復部分：將關聯 IP 標籤補回 renderTable --- */
     function renderTable() {
         const tbody = document.getElementById('bookTableBody');
         tbody.innerHTML = '';
@@ -347,8 +345,7 @@
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 groupHtml += `<tr><td data-label="操作"><button style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="editBook(${params})">修改</button><button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-left:4px;" onclick="deleteBook(${params})">刪除</button></td><td data-label="書名/作者"><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorFull}</small></td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況"><div>${book.volume} ${book.workStatus}</div><span class="${getPillClass(book.buyStatus)}" onclick="setFilter('購買狀態','${book.buyStatus}')">(${book.buyStatus})</span></td>`;
                 if (isFirst) {
-                    // --- 補上關聯 IP 標籤 (深紫色) ---
-                    const relationPill = book.relationId ? `<span class="tag-pill pill-relation">${book.relationId}</span>` : '';
+                    const relationPill = book.relationId ? `<span class="tag-pill pill-relation" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>` : '';
                     groupHtml += `<td data-label="標籤">${relationPill}<span class="${getPillClass(book.bookCategory, true)}" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</span>${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td><td data-label="備註">${book.notes ? `<div class="notes-box">${book.notes}</div>` : '-'}</td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
                 groupHtml += `</tr>`;
