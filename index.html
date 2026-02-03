@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V12.8 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V12.9 Final</title>
     <style>
-        /* --- 承襲 V12.7 UI 樣式 --- */
+        /* --- 承襲 V12.8 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -150,7 +150,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec";
     let allBooks = [], currentFilteredGroups = [], currentPage = 1, itemsPerPage = 10;
     let currentFilter = { key: null, value: null }, secondFilter = null;
-    let editingTarget = null; // 紀錄正在編輯的原始資料索引
+    let editingTarget = null;
 
     function getPillClass(text, isMain = false) {
         if (!text) return 'tag-pill';
@@ -178,19 +178,19 @@
         document.getElementById('loading').style.display='none';
     }
 
-    /* --- 修復核心：儲存、更新與新增版本邏輯 --- */
+    /* --- [優化核心] 儲存成功後自動跳轉預覽 --- */
     async function checkAndSave(mode) {
-        const title = document.getElementById('title').value;
-        if (!title) { alert("書名為必填！"); return; }
+        const titleVal = document.getElementById('title').value;
+        if (!titleVal) { alert("書名為必填！"); return; }
         
         document.getElementById('loading').style.display='flex';
         const bookData = {
-            action: mode === 'update' ? 'save' : 'save', // 後台通常共用 save 邏輯，但需傳入識別資料
+            action: 'save',
             oldTitle: editingTarget ? editingTarget.title : null,
             oldLang: editingTarget ? editingTarget.language : null,
             oldFormat: editingTarget ? editingTarget.format.join(',') : null,
             buyStatus: document.getElementById('buyStatus').value,
-            title: title,
+            title: titleVal,
             author: document.getElementById('author').value,
             nationality: document.getElementById('nationality').value,
             language: document.getElementById('language').value,
@@ -208,9 +208,19 @@
 
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
-            resetForm();
-            await loadFromCloud();
             alert(mode === 'update' ? "更新成功！" : "儲存成功！");
+            
+            // 關鍵跳轉邏輯：自動搜尋該書名以提供預覽
+            const searchName = titleVal;
+            resetForm(); 
+            await loadFromCloud();
+            
+            document.getElementById('searchInput').value = searchName;
+            applyFilters(true);
+            
+            // 平滑滾動至結果區
+            window.scrollTo({ top: document.getElementById('contentSection').offsetTop - 50, behavior: 'smooth' });
+            
         } catch (e) { alert("操作失敗"); }
         document.getElementById('loading').style.display='none';
     }
@@ -218,10 +228,9 @@
     function editBook(t, l, f) {
         const book = allBooks.find(b => b.title === t && b.language === l && b.format.join(',') === f);
         if (!book) return;
-        editingTarget = book; // 紀錄原始索引
+        editingTarget = book;
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
-        // 填充欄位
         document.getElementById('title').value = book.title;
         document.getElementById('author').value = book.author;
         document.getElementById('nationality').value = book.nationality;
@@ -239,7 +248,6 @@
         document.getElementById('relationId').value = book.relationId;
         document.getElementById('notes').value = book.notes;
         
-        // UI 切換至編輯模式
         document.getElementById('saveBtn').style.display = 'none';
         document.getElementById('updateBtn').style.display = 'block';
         document.getElementById('cancelBtn').style.display = 'block';
@@ -247,21 +255,18 @@
     }
 
     function toggleMultiVersion() {
-        if (!editingTarget) { alert("請先點擊下方書籍的『修改』按鈕，再使用新增版本功能。"); return; }
-        // 進入「新增版本」狀態：保留關鍵欄位並鎖定，但按鈕變回儲存
+        if (!editingTarget) { alert("請先修改現有書目，再新增其他版本。"); return; }
         const lockFields = ['title', 'author', 'nationality', 'bookCategory', 'relationId'];
         lockFields.forEach(id => document.getElementById(id).classList.add('locked-field'));
-        
         document.getElementById('saveBtn').style.display = 'block';
         document.getElementById('saveBtn').innerText = "儲存為新版本";
         document.getElementById('updateBtn').style.display = 'none';
-        editingTarget = null; // 清除編輯目標，讓儲存邏輯走「新增」而非「覆蓋」
+        editingTarget = null;
     }
 
     function resetForm() {
         document.getElementById('inputForm').querySelectorAll('input, select, textarea').forEach(el => {
-            el.value = '';
-            el.classList.remove('locked-field');
+            el.value = ''; el.classList.remove('locked-field');
         });
         document.getElementById('isSingleVolume').checked = false;
         document.getElementById('saveBtn').style.display = 'block';
@@ -271,26 +276,27 @@
         editingTarget = null;
     }
 
-    /* --- 其餘 V12.7 篩選、統計與 UI 邏輯 --- */
+    /* --- 其餘篩選、統計與 UI 邏輯 --- */
     function updateDatalists() {
-        const getUnique = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-');
+        const getU = (k) => [...new Set(allBooks.map(b => b[k]))].filter(v => v && v !== '-');
         const fill = (id, list) => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = list.sort().map(v => `<option value="${v}">`).join('');
         };
-        fill('authorList', getUnique('author'));
-        fill('natList', getUnique('nationality'));
-        fill('catList', getUnique('bookCategory'));
-        fill('langList', getUnique('language'));
-        fill('platformList', getUnique('ePlatform'));
-        fill('workStatusList', getUnique('workStatus'));
-        fill('readList', getUnique('readProgress'));
+        fill('authorList', getU('author'));
+        fill('natList', getU('nationality'));
+        fill('catList', getU('bookCategory'));
+        fill('langList', getU('language'));
+        fill('platformList', getU('ePlatform'));
+        fill('workStatusList', getU('workStatus'));
+        fill('readList', getU('readProgress'));
     }
 
     function applyFilters(isManual = true) {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         let filtered = allBooks;
         if (!currentFilter.key && !searchTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
+        
         if (currentFilter.key === '類型') filtered = allBooks.filter(b => b.bookCategory === currentFilter.value);
         if (currentFilter.key === '作者') filtered = allBooks.filter(b => b.author === currentFilter.value);
         if (currentFilter.key === '位置') filtered = allBooks.filter(b => b.ePlatform === currentFilter.value);
