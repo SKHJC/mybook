@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V9.6.1</title>
+    <title>📚 ㄎㄇ的購書紀錄 V10.0</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -11,7 +11,7 @@
         .backup-zone { text-align: right; margin-bottom: 10px; }
         .btn-secondary { background:#6c757d; color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size: 12px; margin-left: 5px; }
         
-        /* 表單 */
+        /* 表單 - 維持 V9.6.1 設定 */
         .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
         .form-full { grid-column: 1 / -1; }
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
@@ -19,12 +19,11 @@
         .checkbox-group { display: flex; align-items: center; font-size: 13px; color: #333; margin-top: 5px; }
         .checkbox-group input { width: auto; margin-right: 5px; }
         
-        /* 按鈕樣式維持 V9.2 設定 */
         .btn-add { grid-column: 1 / -1; padding: 15px; background-color: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: bold; margin-top: 5px; transition: 0.3s; }
         .btn-add.editing { background-color: #ffc107; color: #000; }
         .version-btn { grid-column: 1 / -1; padding: 12px; background: #6f42c1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; margin-top: 5px; }
         
-        /* 導航與分類 */
+        /* 導覽與分類 - 維持 V9.6.1 設定 */
         .category-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; padding: 10px; border-top: 1px dashed #ddd; }
         .cat-btn { background: #fff; color: #495057; padding: 8px 20px; border-radius: 20px; font-size: 15px; font-weight: bold; cursor: pointer; border: 2px solid #6c757d; transition: 0.3s; }
         .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
@@ -35,7 +34,7 @@
         #searchInput { width: 100%; border: 2px solid #007bff; padding: 12px; border-radius: 25px; box-sizing: border-box; font-size: 16px; margin-bottom: 20px; }
         #contentSection { display: none; }
         
-        /* 表格結構 */
+        /* 電腦橫式表格 - 維持 V9.6.1 設定 */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; border: 1px solid #eee; }
         th, td { padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; }
         th { background-color: #f8f9fa; color: #666; font-weight: bold; border-top: 2px solid #007bff; border-bottom: 1px solid #eee; }
@@ -44,6 +43,9 @@
         td[rowspan] { border-bottom: 2px solid #ccc !important; background-color: #fff; }
 
         .tag-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #e9ecef; margin-right: 4px; margin-bottom: 4px; cursor: pointer; border: 1px solid #ccc; }
+        .format-pill { background: #d1ecf1; color: #007bff; border: 1px solid #bee5eb; }
+        .alert-pill { background: #f8d7da !important; color: #dc3545 !important; border: 1px solid #f5c6cb !important; }
+        .type-pill { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
         .edit-link { color: #28a745 !important; font-weight: bold; cursor: pointer; text-decoration: underline; }
         .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 20px; }
@@ -51,30 +53,39 @@
         .page-btn.active { background: #007bff; color: white; border-color: #007bff; }
         .home-btn-container { display: flex; justify-content: center; margin: 20px 0; }
         .btn-home { background: #007bff; color: white; padding: 10px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; }
+        
+        /* 統計面板 - 維持 V9.6.1 設定 */
         .stats-panel { margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 14px; color: #495057; border: 1px solid #eee; }
         .stats-item { background: white; padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .stats-item strong { color: #007bff; font-size: 16px; }
         .locked-field { opacity: 0.5; pointer-events: none; background-color: #f0f0f0; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
 
-        /* --- 手機版專屬優化 --- */
+        /* --- 手機版專屬優化 (V10.0) --- */
         @media (max-width: 800px) {
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
             .group-row-container { border: 2px solid #ccc; margin-bottom: 20px; border-radius: 12px; background: #fff; overflow: hidden; }
-            td { border: none; position: relative; padding-left: 35% !important; padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+            
+            /* 修改點 2：每個欄位之間都有淺灰線隔開 */
+            td { border: none; position: relative; padding-left: 35% !important; padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0 !important; }
             td:before { position: absolute; left: 10px; width: 30%; font-weight: bold; color: #007bff; content: attr(data-label); }
-            .mobile-group-header { background: #f8f9fa; border-bottom: 2px solid #007bff; }
-            .version-diff-block { border-bottom: 2px solid #007bff !important; background-color: #fdfdfd; padding-bottom: 5px; }
+            
+            /* 修改點 1：拿掉直式的灰底，改為純白 */
+            .mobile-group-header { background: #fff !important; border-bottom: 1px solid #f0f0f0 !important; }
+            
+            /* 修正版本分界線 */
+            .version-diff-block { border-top: 2px solid #007bff !important; background-color: #fff !important; padding-bottom: 5px; }
             .version-diff-block:last-of-type { border-bottom: none !important; }
+            
             td[rowspan] { display: none; } 
             .mobile-show-merged { display: block !important; } 
+            
             .mobile-notes-cell { background: #fff; padding: 15px !important; border-top: 1px solid #f0f0f0 !important; }
-            /* 指定修改點：移除斜體 */
             .notes-box { border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fff; font-style: normal; color: #444; min-height: 40px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
-            /* 指定修改點：移除手機版備註標籤字樣 */
             .mobile-notes-cell:before { content: ""; }
-            .mobile-delete-cell { text-align: right; padding-left: 10px !important; border-bottom: none; }
+            
+            .mobile-delete-cell { text-align: right; padding-left: 10px !important; border-bottom: none !important; }
             .mobile-delete-cell:before { content: ""; }
         }
     </style>
@@ -309,9 +320,8 @@
         }
         const groups = [];
         filteredBooks.forEach(book => { const key = book.title + "_" + book.author; let group = groups.find(g => g.key === key); if (!group) { group = { key: key, books: [] }; groups.push(group); } group.books.push(book); });
-        const totalGroups = groups.length; const totalPages = Math.ceil(totalGroups / itemsPerPage) || 1;
-        if (currentPage > totalPages) currentPage = totalPages;
-        const pageGroups = groups.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+        const startIdx = (currentPage - 1) * itemsPerPage;
+        const pageGroups = groups.slice(startIdx, startIdx + itemsPerPage);
 
         pageGroups.forEach(group => {
             tbody.innerHTML += `<div class="group-row-container">`;
@@ -322,6 +332,7 @@
                 const authorDisplay = book.nationality ? `${book.author} (${book.nationality})` : book.author;
                 const delKey = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
 
+                // 透過 idx > 0 分辨附加版本，觸發藍色版本分界線
                 let rowHtml = `<tr class="${index === 0 ? 'mobile-group-header' : 'version-inner-row version-diff-block'} ${index === group.books.length - 1 ? 'group-boundary-row' : ''}">`;
                 if (isFirst) {
                     rowHtml += `<td class="mobile-show-merged" data-label="書名/作者" style="display:none;"><strong class="edit-link" onclick="editBook(${delKey})">${book.title}</strong><br><small onclick="setFilter('作者','${book.author}')" style="cursor:pointer; color:#007bff; text-decoration:underline;">${authorDisplay}</small></td>
@@ -341,7 +352,7 @@
             });
             tbody.innerHTML += `</div>`;
         });
-        renderPagination(totalPages);
+        renderPagination(Math.ceil(groups.length / itemsPerPage));
     }
 
     function renderPagination(totalPages) {
