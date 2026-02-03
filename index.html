@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V13.2 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V13.3 Final</title>
     <style>
-        /* --- 承襲 V13.1 UI 樣式 --- */
+        /* --- 承襲 V13.2 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -63,8 +63,8 @@
             td[data-label="操作"] { padding-left: 15px !important; text-align: right; background: #fcfcfc; border-bottom: none !important; }
             .notes-box { background: #fcfcfc; padding: 10px; border-radius: 6px; font-size: 13px; color: #555; }
             
-            /* --- 手機版版本標籤 (圖一) --- */
-            .version-pill-mobile { display: inline-block; background: #84b2e6; color: white; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 15px; margin: 10px 0 5px 15px; }
+            /* --- [更新] 手機版版本標籤置左 (圖一) --- */
+            .version-pill-mobile { display: block; background: #84b2e6; color: white; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 15px; margin: 10px 0 5px 0; text-align: left; width: fit-content; }
         }
 
         .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 30px 0; }
@@ -251,11 +251,11 @@
         document.getElementById('multiVersionBtn').style.display = 'block';
     }
 
-    /* --- [更新] 新增版本狀態鎖定 (圖二-②) --- */
+    /* --- [更新] 新增版本狀態鎖定補全：加入書籍類別 (圖二-②) --- */
     function toggleMultiVersion() {
         if (!editingTarget) { alert("請先點擊修改，再新增版本。"); return; }
-        // 鎖定範圍擴大：包含作品狀態、閱讀狀態、標籤
-        const lockFields = ['title', 'author', 'nationality', 'bookCategory', 'relationId', 'workStatus', 'readProgress', 'tags'];
+        // 鎖定範圍：書名、作者、國籍、類型、關聯ID、作品狀態、閱讀狀態、標籤、書籍類別 (subCategory)
+        const lockFields = ['title', 'author', 'nationality', 'bookCategory', 'relationId', 'workStatus', 'readProgress', 'tags', 'subCategory'];
         lockFields.forEach(id => document.getElementById(id).classList.add('locked-field'));
         
         document.getElementById('saveBtn').style.display = 'block';
@@ -278,7 +278,6 @@
         editingTarget = null;
     }
 
-    /* --- [更新] 自動補完選清單擴充 (圖二-①) --- */
     function updateDatalists() {
         const getU = (k) => [...new Set(allBooks.map(b => b[k]))].filter(v => v && v !== '-');
         const getSplitU = (k) => {
@@ -356,7 +355,6 @@
         p.innerHTML = `<div class="stats-item">總圖書量：<strong>${allBooks.length}</strong> 本</div><div class="stats-item">形式統計：<strong>${formatStr.trim()}</strong></div><div class="stats-item">書籍類型統計：<strong>${catStr.trim()}</strong></div>`;
     }
 
-    /* --- [更新] 手機版版本標籤 (圖一) --- */
     function renderTable() {
         const tbody = document.getElementById('bookTableBody');
         tbody.innerHTML = '';
@@ -369,7 +367,7 @@
                 const authorFull = book.nationality ? `${book.author} (${book.nationality})` : book.author;
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 
-                // 版本標籤 (僅在多版本且手機版時顯示)
+                // 版本標籤置左
                 const versionHeader = group.books.length > 1 ? `<div class="version-pill-mobile">版本 ${idx+1}</div>` : '';
                 
                 groupHtml += `<tr><td data-label="操作">${versionHeader}<button style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="editBook(${params})">修改</button><button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-left:4px;" onclick="deleteBook(${params})">刪除</button></td><td data-label="書名/作者"><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorFull}</small></td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況"><div>${book.volume} ${book.workStatus}</div><span class="${getPillClass(book.buyStatus)}" onclick="setFilter('購買狀態','${book.buyStatus}')">(${book.buyStatus})</span></td>`;
