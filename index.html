@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V12.4 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V12.5 Final</title>
     <style>
         /* --- [視覺基礎] 恢復 V12.1 清新審美 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
@@ -38,19 +38,14 @@
         /* --- 核心 Pill 樣式 (V12.1 視覺) --- */
         .tag-pill { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 13px; background: #e2f3f5; color: #0c5460; margin-right: 5px; margin-bottom: 5px; cursor: pointer; border: none; transition: 0.1s; vertical-align: middle; }
         .tag-pill:hover { opacity: 0.8; }
-        
-        /* 小說/工具書等主分類 (藍色) */
         .pill-main { background: #007bff !important; color: white !important; }
-        /* 一般標籤 (淺綠/灰) */
         .pill-sub { background: #d4edda !important; color: #155724 !important; }
-        /* 警示標籤 (紅底白字 - 最高原則) */
         .alert-pill { background: #dc3545 !important; color: white !important; font-weight: bold; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; table-layout: fixed; }
         th { background-color: #f8f9fa; color: #666; font-weight: bold; padding: 15px 10px; border-bottom: 2px solid #007bff; text-align: left; }
         td { padding: 15px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
 
-        /* 手機版樣式 (依照照片 V12.1) */
         @media (max-width: 800px) {
             .form-group { grid-template-columns: 1fr 1fr; }
             table, thead, tbody, th, td, tr { display: block; }
@@ -58,11 +53,8 @@
             .group-row-container { border: 1px solid #ddd; margin-bottom: 25px; border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
             td { border: none !important; position: relative; padding: 12px 15px 12px 110px !important; border-bottom: 1px solid #f8f9fa !important; }
             td:before { content: attr(data-label); position: absolute; left: 15px; width: 80px; font-weight: bold; color: #007bff; font-size: 13px; }
-            
-            /* 欄位隱藏標籤 (操作/備註) */
             td[data-label="操作"]:before, td[data-label="備註"]:before { content: ""; }
             td[data-label="操作"] { padding-left: 15px !important; text-align: right; background: #fcfcfc; border-bottom: none !important; }
-            
             .notes-box { background: #fcfcfc; padding: 10px; border-radius: 6px; font-size: 13px; color: #555; }
         }
 
@@ -74,16 +66,16 @@
 </head>
 <body>
 
-<div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
+<div id="loading" class="loading-overlay">⚙️ 正在同步中...</div>
 
 <div class="container">
     <h1>📚 ㄎㄇ的購書紀錄</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
-        <div><label>作者 *</label><input type="text" id="author" placeholder="例：J.K. 羅琳"></div>
-        <div><label>作者國籍 *</label><input type="text" id="nationality" placeholder="例：英國"></div>
-        <div><label>書籍類型 *</label><input type="text" id="bookCategory" placeholder="例：漫畫"></div>
+        <div><label>作者 *</label><input type="text" id="author" list="authorList" placeholder="例：J.K. 羅琳"></div>
+        <div><label>作者國籍 *</label><input type="text" id="nationality" list="natList" placeholder="例：英國"></div>
+        <div><label>書籍類型 *</label><input type="text" id="bookCategory" list="catList" placeholder="例：漫畫"></div>
         
         <div><label>書籍類別 (逗號隔開) ⁂</label><input type="text" id="subCategory" placeholder="例：日本, BL"></div>
         <div><label>購買狀態 *</label>
@@ -93,10 +85,10 @@
                 <option>未出完已買到進度</option><option>已購買</option><option>重複購買</option>
             </select>
         </div>
-        <div><label>內文語言 *</label><input type="text" id="language" placeholder="例：繁體中文"></div>
-        <div><label>形式 (例：實體書, 電子書)</label><input type="text" id="format" placeholder="可填多個"></div>
+        <div><label>內文語言 *</label><input type="text" id="language" list="langList" placeholder="例：繁體中文"></div>
+        <div><label>形式 (例：實體書, 電子書)</label><input type="text" id="format" list="formatList" placeholder="可填多個"></div>
         
-        <div><label>書籍位置 *</label><input type="text" id="ePlatform" placeholder="例：BW"></div>
+        <div><label>書籍位置 *</label><input type="text" id="ePlatform" list="platformList" placeholder="例：BW"></div>
         <div id="divVol">
             <label>目前購買集數</label>
             <input type="number" id="volume" value="1">
@@ -105,8 +97,8 @@
                 <span>此書全一集完結</span>
             </label>
         </div>
-        <div><label>作品狀態 *</label><input type="text" id="workStatus" placeholder="例：正文完結"></div>
-        <div><label>閱讀狀態 *</label><input type="text" id="readProgress" placeholder="例：未讀"></div>
+        <div><label>作品狀態 *</label><input type="text" id="workStatus" list="workStatusList" placeholder="例：正文完結"></div>
+        <div><label>閱讀狀態 *</label><input type="text" id="readProgress" list="readList" placeholder="例：未讀"></div>
         
         <div class="form-full"><label>標籤 (逗號隔開) ⁂</label><input type="text" id="tags" placeholder="例：推理"></div>
         <div class="form-full"><label>關聯 ID *</label><input type="text" id="relationId" placeholder="例：HP"></div>
@@ -119,6 +111,15 @@
             <button class="btn-cancel" id="cancelBtn" onclick="resetForm()">取消/結束鎖定狀態</button>
         </div>
     </div>
+
+    <datalist id="authorList"></datalist>
+    <datalist id="natList"></datalist>
+    <datalist id="catList"></datalist>
+    <datalist id="langList"></datalist>
+    <datalist id="formatList"></datalist>
+    <datalist id="platformList"></datalist>
+    <datalist id="workStatusList"></datalist>
+    <datalist id="readList"></datalist>
 
     <div id="categoryPanel" class="category-container"></div>
     <div id="subFilterPanel" class="sub-filter-container"></div>
@@ -150,7 +151,6 @@
     let allBooks = [], currentFilteredGroups = [], currentPage = 1, itemsPerPage = 10;
     let currentFilter = { key: null, value: null }, secondFilter = null;
 
-    // 核心視覺邏輯：警示色判定
     function getPillClass(text, isMain = false) {
         if (!text) return 'tag-pill';
         const alertKeywords = ['未', '沒', '重複', '缺', '不'];
@@ -171,8 +171,33 @@
                 relationId: row[12], notes: row[13], nationality: row[14] || ''
             }));
             applyFilters();
+            updateDatalists(); // 每次載入後更新自動選項
         } catch (e) { console.error(e); }
         document.getElementById('loading').style.display='none';
+    }
+
+    // 核心功能：補回自動選項收集器
+    function updateDatalists() {
+        const getUnique = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-');
+        const getUniqueFormats = () => {
+            let formats = new Set();
+            allBooks.forEach(b => b.format.forEach(f => formats.add(f)));
+            return [...formats].filter(Boolean);
+        };
+
+        const fill = (id, list) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = list.sort().map(v => `<option value="${v}">`).join('');
+        };
+
+        fill('authorList', getUnique('author'));
+        fill('natList', getUnique('nationality'));
+        fill('catList', getUnique('bookCategory'));
+        fill('langList', getUnique('language'));
+        fill('formatList', getUniqueFormats());
+        fill('platformList', getUnique('ePlatform'));
+        fill('workStatusList', getUnique('workStatus'));
+        fill('readList', getUnique('readProgress'));
     }
 
     function applyFilters() {
@@ -190,7 +215,6 @@
                 return tags.includes(currentFilter.value);
             });
         }
-
         if (secondFilter) {
             filtered = filtered.filter(b => {
                 const tagSet = new Set([...(b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : []), ...b.tags]);
@@ -226,26 +250,18 @@
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
 
                 groupHtml += `<tr>`;
-                // 操作
                 groupHtml += `<td data-label="操作">
                     <button style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="editBook(${params})">修改</button>
                     <button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-left:4px;" onclick="deleteBook(${params})">刪除</button>
                 </td>`;
-                // 書名/作者
                 groupHtml += `<td data-label="書名/作者"><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorFull}</small></td>`;
-                // 閱讀狀態
                 groupHtml += `<td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td>`;
-                // 位置
                 groupHtml += `<td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td>`;
-                // 形式
                 groupHtml += `<td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td>`;
-                // 購買狀況
                 groupHtml += `<td data-label="購買狀況"><div>${book.volume} ${book.workStatus}</div><span class="${getPillClass(book.buyStatus)}" onclick="setFilter('購買狀態','${book.buyStatus}')">(${book.buyStatus})</span></td>`;
 
                 if (isFirst) {
-                    // 標籤
                     groupHtml += `<td data-label="標籤"><span class="${getPillClass(book.bookCategory, true)}" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</span>${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td>`;
-                    // 備註
                     groupHtml += `<td data-label="備註">${book.notes ? `<div class="notes-box">${book.notes}</div>` : '-'}</td>`;
                 } else {
                     groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`;
