@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V13.5 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V13.7 Final</title>
     <style>
-        /* --- 承襲 V13.4 UI 樣式 --- */
+        /* --- 承襲 V13.6 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -89,6 +89,7 @@
                 <option value="" disabled selected>請選擇...</option>
                 <option>已買完</option><option>未買完</option><option>未出完未買完</option>
                 <option>未出完已買到進度</option><option>已購買</option><option>重複購買</option>
+                <option>0元書</option><option>贈品</option><option>試閱</option>
             </select>
         </div>
         <div><label>內文語言 *</label><input type="text" id="language" list="langList" placeholder="例：繁體中文"></div>
@@ -317,7 +318,6 @@
         let filtered = allBooks;
         if (!currentFilter.key && !searchTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
         
-        // 修改：類型支援複數判定
         if (currentFilter.key === '類型') {
             filtered = allBooks.filter(b => {
                 const cats = b.bookCategory.split(/[，,]/).map(s=>s.trim());
@@ -332,13 +332,15 @@
         if (currentFilter.key === '關聯IP') filtered = allBooks.filter(b => b.relationId === currentFilter.value);
         if (currentFilter.key === '小標籤') {
             filtered = allBooks.filter(b => {
-                const tags = [...(b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : []), ...b.tags];
+                const subCats = b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : [];
+                const tags = [...subCats, ...b.tags];
                 return tags.includes(currentFilter.value);
             });
         }
         if (secondFilter) {
             filtered = filtered.filter(b => {
-                const tagSet = new Set([...(b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : []), ...b.tags]);
+                const subCats = b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : [];
+                const tagSet = new Set([...subCats, ...b.tags]);
                 return tagSet.has(secondFilter);
             });
         }
@@ -363,8 +365,6 @@
         if (!p || allBooks.length === 0) return;
         const fc = {}; allBooks.forEach(b => b.format.forEach(f => fc[f] = (fc[f] || 0) + 1));
         let formatStr = ""; for (let f in fc) formatStr += `${f}(${fc[f]}) `;
-        
-        // 修改：統計複數類型
         const cc = {}; 
         allBooks.forEach(b => {
             const cats = b.bookCategory.split(/[，,]/).map(s=>s.trim());
@@ -391,9 +391,12 @@
                 groupHtml += `<tr><td data-label="操作">${versionHeader}<button style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="editBook(${params})">修改</button><button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-left:4px;" onclick="deleteBook(${params})">刪除</button></td><td data-label="書名/作者"><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorFull}</small></td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況"><div>${book.volume} ${book.workStatus}</div><span class="${getPillClass(book.buyStatus)}" onclick="setFilter('購買狀態','${book.buyStatus}')">(${book.buyStatus})</span></td>`;
                 if (isFirst) {
                     const relationPill = book.relationId ? `<span class="tag-pill pill-relation" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>` : '';
-                    // 修改：複數類型顯示
                     const catPills = book.bookCategory.split(/[，,]/).map(c => `<span class="${getPillClass(c.trim(), true)}" onclick="setFilter('類型','${c.trim()}')">${c.trim()}</span>`).join('');
-                    groupHtml += `<td data-label="標籤">${relationPill}${catPills}${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td><td data-label="備註">${book.notes ? `<div class="notes-box">${book.notes}</div>` : '-'}</td>`;
+                    
+                    // --- [更新] 補上「書籍類別」標籤顯示與篩選功能 ---
+                    const subCatPills = book.subCategory ? book.subCategory.split(/[，,]/).map(s => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`).join('') : '';
+                    
+                    groupHtml += `<td data-label="標籤">${relationPill}${catPills}${subCatPills}${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td><td data-label="備註">${book.notes ? `<div class="notes-box">${book.notes}</div>` : '-'}</td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
                 groupHtml += `</tr>`;
             });
