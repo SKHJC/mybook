@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V14.4 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V14.5 Final</title>
     <style>
-        /* --- 承襲 V14.3 UI 樣式 --- */
+        /* --- 承襲 V14.4 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -339,12 +339,44 @@
         document.getElementById('syncUnlockBtn').style.display = 'none'; editingTarget = null; isSyncMode = false;
     }
 
+    /* --- [優化] 自動記憶功能：拆分逗號、去除重複、排序 --- */
     function updateDatalists() {
-        const getU = (k) => [...new Set(allBooks.map(b => b[k]))].filter(v => v && v !== '-');
-        const fill = (id, list) => { const el = document.getElementById(id); if (el) el.innerHTML = list.sort().map(v => `<option value="${v}">`).join(''); };
-        fill('authorList', getU('author')); fill('natList', getU('nationality')); fill('catList', getU('bookCategory')); fill('langList', getU('language')); 
-        fill('formatList', getU('format')); fill('platformList', getU('ePlatform')); fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); 
-        fill('tagOptionList', getU('tags')); fill('publisherList', getU('publisher')); fill('serialPlatformList', getU('serialPlatform'));
+        const getU = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-');
+        
+        // 針對標籤、類型、類別等逗號隔開的內容進行深度拆分
+        const getSplitU = (key) => {
+            let set = new Set();
+            allBooks.forEach(b => {
+                let val = b[key];
+                if (Array.isArray(val)) {
+                    val.forEach(v => set.add(v.trim()));
+                } else if (typeof val === 'string' && val.trim() !== '') {
+                    val.split(/[，,]/).forEach(v => {
+                        const trimmed = v.trim();
+                        if (trimmed) set.add(trimmed);
+                    });
+                }
+            });
+            return [...set].sort();
+        };
+
+        const fill = (id, list) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = list.map(v => `<option value="${v}">`).join('');
+        };
+
+        fill('authorList', getU('author'));
+        fill('natList', getU('nationality'));
+        fill('catList', getSplitU('bookCategory')); // 修復：支援複數類型拆分
+        fill('subCatList', getSplitU('subCategory')); // 修復：支援複數類別拆分
+        fill('langList', getU('language')); 
+        fill('formatList', getSplitU('format')); 
+        fill('platformList', getU('ePlatform')); 
+        fill('workStatusList', getU('workStatus')); 
+        fill('readList', getU('readProgress')); 
+        fill('tagOptionList', getSplitU('tags')); // 修復：標籤唯一化顯示
+        fill('publisherList', getU('publisher')); 
+        fill('serialPlatformList', getU('serialPlatform'));
     }
 
     function applyFilters(isManual = true) {
@@ -359,7 +391,11 @@
         if (currentFilter.key === '閱讀狀態') filtered = allBooks.filter(b => b.readProgress === currentFilter.value);
         if (currentFilter.key === '關聯IP') filtered = allBooks.filter(b => b.relationId === currentFilter.value);
         if (currentFilter.key === '連載平台') filtered = allBooks.filter(b => b.serialPlatform === currentFilter.value);
-        if (currentFilter.key === '小標籤') { filtered = allBooks.filter(b => { const subCats = b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : []; const tags = [...subCats, ...b.tags]; return tags.includes(currentFilter.value); }); }
+        if (currentFilter.key === '小標籤') { filtered = allBooks.filter(b => { 
+            const subCats = b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : []; 
+            const tags = Array.isArray(b.tags) ? b.tags : (b.tags ? b.tags.split(/[，,]/).map(s=>s.trim()) : []);
+            return [...subCats, ...tags].includes(currentFilter.value); 
+        }); }
         if (searchTerm) filtered = filtered.filter(b => b.title.toLowerCase().includes(searchTerm) || b.author.toLowerCase().includes(searchTerm) || b.notes.toLowerCase().includes(searchTerm));
         const groups = []; filtered.forEach(b => { const k = b.title + "_" + b.author; let g = groups.find(x => x.key === k); if (!g) { g = { key: k, books: [] }; groups.push(g); } g.books.push(b); });
         currentFilteredGroups = groups;
