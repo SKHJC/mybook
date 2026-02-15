@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V17.1 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V17.2.1</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -42,6 +42,7 @@
         .checkbox-container { display: flex; align-items: center; gap: 5px; margin-top: 8px; cursor: pointer; user-select: none; color: #666; font-size: 12px; }
         .checkbox-container input { width: 13px; height: 13px; cursor: pointer; margin: 0; }
         .checkbox-row { display: flex; flex-wrap: wrap; gap: 10px; grid-column: 1 / -1; margin-top: -5px; margin-bottom: 10px; }
+        .checkbox-row-container { display: flex; flex-direction: column; gap: 2px; }
 
         .btn-group-vertical { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
         .btn-version { background-color: #6f42c1; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
@@ -85,8 +86,6 @@
         .pill-relation { background: #7D7DFF !important; color: white !important; font-weight: bold; }
         .status-pill { background: #0077FF !important; color: white !important; font-weight: bold; }
         .alert-pill { background: #dc3545 !important; color: white !important; font-weight: bold; }
-        
-        /* [更新] 書籍位置配色修正 */
         .pill-location { background: #01B468 !important; color: white !important; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; table-layout: fixed; min-width: 1000px; }
@@ -138,11 +137,21 @@
         <div>
             <label>書籍類型 (逗號隔開) ⁂</label>
             <input type="text" id="bookCategory" list="catList" placeholder="例：漫畫">
-            <div class="checkbox-row">
-                <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="續作"><span>續作</span></label>
-                <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="前作"><span>前作</span></label>
-                <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="外傳"><span>外傳</span></label>
-                <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="番外"><span>番外</span></label>
+            <div class="checkbox-row-container">
+                <div class="checkbox-row">
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="續作"><span>續作</span></label>
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="前作"><span>前作</span></label>
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="外傳"><span>外傳</span></label>
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="番外"><span>番外</span></label>
+                </div>
+                <div class="checkbox-row">
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="改編自動畫"><span>改編自動畫</span></label>
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="改編自漫畫"><span>改編自漫畫</span></label>
+                </div>
+                <div class="checkbox-row">
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="改編自影劇"><span>改編自影劇</span></label>
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="改編自小說"><span>改編自小說</span></label>
+                </div>
             </div>
         </div>
         
@@ -150,7 +159,7 @@
         <div><label>購買狀態 *</label>
             <select id="buyStatus">
                 <option value="" disabled selected>請選擇...</option>
-                <option>已買完</option><option>未買完</option><option>未出完未買完</option>
+                <option>已買完</option><option>未買完</option><option>已出完未買完</option><option>未出完未買完</option>
                 <option>未出完已買到進度</option><option>已購買</option><option>重複購買</option>
                 <option>0元書</option><option>贈品</option><option>試閱</option>
             </select>
@@ -160,11 +169,20 @@
         
         <div><label>書籍位置 (逗號隔開) ⁂</label><input type="text" id="ePlatform" list="platformList" placeholder="例：BW, 實體書"></div>
         <div id="divVol">
-            <label>目前購買集數</label>
-            <input type="number" id="volume" value="1">
+            <label>目前購買集數/回數</label>
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="volume" value="1" style="flex: 2;">
+                <select id="volumeUnit" style="flex: 1; padding: 5px;">
+                    <option>集</option><option>回(話)</option><option>篇</option>
+                </select>
+            </div>
             <label class="checkbox-container">
                 <input type="checkbox" id="isSingleVolume" onchange="handleSingleVolume(this)">
                 <span>此書全一集完結</span>
+            </label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="hasPrologue">
+                <span>含序章</span>
             </label>
         </div>
         <div><label>作品狀態 *</label><input type="text" id="workStatus" list="workStatusList" placeholder="例：正文完結"></div>
@@ -206,6 +224,7 @@
                 <option>不重看純收藏</option>
                 <option>重看電子書</option>
                 <option>實體書電子書都會重看</option>
+                <option>如果忘記劇情會重看</option>
                 <option>一點都不想留</option>
                 <option>不繼續買</option>
                 <option>已隱藏</option>
@@ -291,7 +310,7 @@
         if (!text) return 'tag-pill';
         const alertKeywords = ['未', '沒', '重複', '缺', '不', '坑'];
         if (alertKeywords.some(k => text.includes(k))) return 'tag-pill alert-pill';
-        const specialTypes = ['續作', '前作', '外傳', '番外'];
+        const specialTypes = ['續作', '前作', '外傳', '番外', '改編自動畫', '改編自漫畫', '改編自影劇', '改編自小說'];
         if (specialTypes.includes(text)) return 'tag-pill pill-special-cat';
         if (type === 'status') return 'tag-pill status-pill';
         if (type === 'main') return 'tag-pill pill-main';
@@ -300,7 +319,7 @@
         if (type === 'drama') return 'tag-pill pill-drama';
         if (type === 'publisher') return 'tag-pill pill-publisher';
         if (type === 'relation') return 'tag-pill pill-relation';
-        if (type === 'location') return 'tag-pill pill-location'; // [更新] 套用書籍位置色
+        if (type === 'location') return 'tag-pill pill-location';
         return 'tag-pill pill-sub';
     }
 
@@ -309,18 +328,30 @@
         try {
             const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'read' }) });
             const data = await r.json();
-            allBooks = data.map(row => ({
-                buyStatus: row[0], title: row[1], author: row[2], language: row[3], 
-                bookCategory: row[4], subCategory: row[5],
-                format: row[6] ? row[6].split(',').map(s=>s.trim()) : [],
-                ePlatform: row[7], volume: row[8], workStatus: row[9], readProgress: row[10],
-                tags: row[11] ? row[11].split(',').map(s=>s.trim()) : [],
-                relationId: row[12], notes: row[13], nationality: row[14] || '',
-                publisher: row[15] || '', serialPlatform: row[16] || '',
-                rating: row[17] || '', canDiscard: row[18] === 'TRUE' || row[18] === true, reRead: row[19] || '',
-                isAudioDrama: row[20] === 'TRUE' || row[20] === true,
-                willHide: row[21] === 'TRUE' || row[21] === true
-            }));
+            allBooks = data.map(row => {
+                let volStr = row[8] ? row[8].toString() : "1";
+                let unit = "集", hasPrologue = false;
+                if(volStr.includes('回')) unit = "回(話)";
+                else if(volStr.includes('篇')) unit = "篇";
+                if(volStr.includes('含序章')) hasPrologue = true;
+
+                return {
+                    buyStatus: row[0], title: row[1], author: row[2], language: row[3], 
+                    bookCategory: row[4], subCategory: row[5],
+                    format: row[6] ? row[6].split(',').map(s=>s.trim()) : [],
+                    ePlatform: row[7], 
+                    volume: volStr, 
+                    volumeUnit: unit,
+                    hasPrologue: hasPrologue,
+                    workStatus: row[9], readProgress: row[10],
+                    tags: row[11] ? row[11].split(',').map(s=>s.trim()) : [],
+                    relationId: row[12], notes: row[13], nationality: row[14] || '',
+                    publisher: row[15] || '', serialPlatform: row[16] || '',
+                    rating: row[17] || '', canDiscard: row[18] === 'TRUE' || row[18] === true, reRead: row[19] || '',
+                    isAudioDrama: row[20] === 'TRUE' || row[20] === true,
+                    willHide: row[21] === 'TRUE' || row[21] === true
+                };
+            });
             updateDatalists(); updateCategoryButtons(); updateStats();
         } catch (e) { console.error(e); }
         document.getElementById('loading').style.display='none';
@@ -335,6 +366,11 @@
         let manualType = document.getElementById('bookCategory').value;
         let finalCategory = [manualType, ...selectedTypes].filter(v => v.trim() !== '').join(', ');
 
+        let volVal = document.getElementById('volume').value;
+        let unit = document.getElementById('volumeUnit').value;
+        let proStr = document.getElementById('hasPrologue').checked ? "含序章" : "";
+        let finalVolume = document.getElementById('isSingleVolume').checked ? "1(全)" : (volVal + unit + proStr);
+
         const bookData = {
             action: 'save', isSyncMode: isSyncMode,
             oldTitle: editingTarget ? editingTarget.title : null,
@@ -348,7 +384,7 @@
             subCategory: document.getElementById('subCategory').value,
             format: document.getElementById('format').value,
             ePlatform: document.getElementById('ePlatform').value,
-            volume: document.getElementById('isSingleVolume').checked ? "1(全)" : document.getElementById('volume').value,
+            volume: finalVolume,
             workStatus: document.getElementById('workStatus').value,
             readProgress: document.getElementById('readProgress').value,
             tags: document.getElementById('tags').value, relationId: document.getElementById('relationId').value,
@@ -382,7 +418,7 @@
         editingTarget = book; isSyncMode = false; window.scrollTo({ top: 0, behavior: 'smooth' });
         document.querySelectorAll('input[name="typeCheck"]').forEach(cb => cb.checked = false);
         let cats = book.bookCategory.split(/[，,]/).map(s=>s.trim());
-        let specialTypes = ['續作', '前作', '外傳', '番外'];
+        let specialTypes = ['續作', '前作', '外傳', '番外', '改編自動畫', '改編自漫畫', '改編自影劇', '改編自小說'];
         let remainingCats = cats.filter(c => {
             if(specialTypes.includes(c)) {
                 let checkbox = document.querySelector(`input[name="typeCheck"][value="${c}"]`);
@@ -401,8 +437,13 @@
         document.getElementById('language').value = book.language;
         document.getElementById('format').value = book.format.join(', ');
         document.getElementById('ePlatform').value = book.ePlatform;
-        document.getElementById('volume').value = parseInt(book.volume) || 1;
+        
+        let numericVol = parseInt(book.volume) || 1;
+        document.getElementById('volume').value = numericVol;
+        document.getElementById('volumeUnit').value = book.volumeUnit;
+        document.getElementById('hasPrologue').checked = book.hasPrologue;
         document.getElementById('isSingleVolume').checked = book.volume.toString().includes('全');
+        
         document.getElementById('workStatus').value = book.workStatus;
         document.getElementById('readProgress').value = book.readProgress;
         document.getElementById('tags').value = book.tags.join(', ');
@@ -455,6 +496,8 @@
         document.querySelectorAll('input[name="typeCheck"]').forEach(cb => {cb.checked = false; cb.disabled = false;});
         document.getElementById('isSingleVolume').checked = false; document.getElementById('canDiscard').checked = false;
         document.getElementById('willHide').checked = false; document.getElementById('isAudioDrama').checked = false; 
+        document.getElementById('hasPrologue').checked = false;
+        document.getElementById('volumeUnit').selectedIndex = 0;
         document.getElementById('discardZone').style.display = 'none';
         document.getElementById('saveBtn').style.display = 'block'; document.getElementById('saveBtn').innerText = "儲存書單至雲端";
         document.getElementById('updateBtn').style.display = 'none'; document.getElementById('updateBtn').innerText = "更新此版本資訊";
@@ -485,18 +528,12 @@
         fill('serialPlatformList', getSplitU('serialPlatform')); fill('relationIdList', getU('relationId'));
     }
 
-    /* --- [更新] 篩選邏輯：修復進階篩選二次過濾邏輯 --- */
     function applyFilters(isManual = true) {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const starTerm = document.getElementById('ratingFilter').value;
         let filtered = allBooks;
-
         if (!currentFilter.key && !searchTerm && !starTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
-        
-        // 1. 星數篩選
         if (starTerm) filtered = filtered.filter(b => b.rating.toString() === starTerm);
-
-        // 2. 主篩選 (類型, 作者等)
         if (currentFilter.key === '類型') filtered = filtered.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
         if (currentFilter.key === '作者') filtered = filtered.filter(b => b.author === currentFilter.value);
         if (currentFilter.key === '位置') filtered = filtered.filter(b => b.ePlatform.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
@@ -506,8 +543,6 @@
         if (currentFilter.key === '關聯IP') filtered = filtered.filter(b => b.relationId === currentFilter.value);
         if (currentFilter.key === '出版社') filtered = filtered.filter(b => b.publisher === currentFilter.value);
         if (currentFilter.key === '連載平台') filtered = filtered.filter(b => b.serialPlatform.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
-        
-        // [重點修復] 3. 進階篩選：當點開書籍類型後，小標籤的過濾逻辑
         if (secondFilter) {
             filtered = filtered.filter(b => {
                 const subCats = b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : [];
@@ -515,18 +550,11 @@
                 return subCats.includes(secondFilter) || tags.includes(secondFilter);
             });
         }
-
-        // 4. 關鍵字搜尋
         if (searchTerm) filtered = filtered.filter(b => b.title.toLowerCase().includes(searchTerm) || b.author.toLowerCase().includes(searchTerm) || b.notes.toLowerCase().includes(searchTerm));
-        
         const groups = []; filtered.forEach(b => { const k = b.title + "_" + b.author; let g = groups.find(x => x.key === k); if (!g) { g = { key: k, books: [] }; groups.push(g); } g.books.push(b); });
         currentFilteredGroups = groups;
         document.getElementById('contentSection').style.display = 'block';
-        renderTable(); 
-        updateCategoryButtons(); 
-        updateSubFilterButtons(); // 更新進階選單狀態
-        updateStats(); 
-
+        renderTable(); updateCategoryButtons(); updateSubFilterButtons(); updateStats(); 
         if (isManual && (starTerm || currentFilter.key || secondFilter)) {
             setTimeout(() => {
                 const target = document.getElementById('contentSection');
@@ -554,27 +582,37 @@
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 const versionHeader = group.books.length > 1 ? `<div class="version-pill-mobile">版本 ${idx+1}</div>` : '';
                 
-                const volText = book.volume.toString().includes('全') ? '全一集' : `共 ${book.volume} 集`;
-                const alertKeywords = ['坑', '未', '不'];
+                let volText = "";
+                if(book.volume.toString().includes('全')) {
+                    volText = '全一集';
+                } else {
+                    let num = parseInt(book.volume) || 0;
+                    let unit = book.volumeUnit || "集";
+                    let proSuffix = book.hasPrologue ? "含序章" : "";
+                    let displayNum = book.hasPrologue ? (num + 1) : num;
+                    volText = `共 ${displayNum} ${unit.replace('(話)','')}${proSuffix}`;
+                }
+
+                const alertKeywords = ['坑', '未', '沒', '不'];
                 const workStatusStyle = alertKeywords.some(k => book.workStatus.includes(k)) ? 'color:#dc3545; font-weight:bold;' : '';
                 const buyStatusHtml = `<div style="margin-bottom:5px;">${volText} (<span style="${workStatusStyle}">${book.workStatus}</span>)</div><span class="${getPillClass(book.buyStatus, 'status')}" onclick="setFilter('購買狀態','${book.buyStatus}')">${book.buyStatus}</span>`;
 
                 let ratingStars = "⭐".repeat(parseInt(book.rating) || 0);
-                let evalDisplay = `<div style="margin-bottom:5px;">${ratingStars}</div><div>(${book.reRead || '未設定'})</div>`;
+                
+                // 評價/重看 顯示邏輯更新：移除括號
+                let reReadText = book.reRead;
+                if(!reReadText || reReadText === '未設定' || reReadText.trim() === '') {
+                    reReadText = `<span style="color:#FFAAD5; font-weight:bold;">待補</span>`;
+                } else {
+                    reReadText = `(${reReadText})`; // 有內容時維持括號
+                }
+
+                let evalDisplay = `<div style="margin-bottom:5px;">${ratingStars}</div><div>${reReadText}</div>`;
                 if (book.canDiscard) evalDisplay += `<div style="color:#dc3545; font-size:11px; font-weight:bold; margin-top:5px;">【可賣掉/丟掉】</div>`;
                 if (book.willHide) evalDisplay += `<div style="color:#dc3545; font-size:11px; font-weight:bold; margin-top:2px;">【想隱藏】</div>`;
 
                 const actionHtml = `<div class="action-btns"><button class="btn-edit-small" onclick="editBook(${params})">修改</button><button class="btn-del-small" onclick="deleteBook(${params})">刪除</button></div>`;
-
-                const titleContentHtml = `
-                    <div class="mobile-title-row">
-                        <div>
-                            <strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br>
-                            <small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorDisplay}</small>
-                        </div>
-                        ${actionHtml}
-                    </div>
-                `;
+                const titleContentHtml = `<div class="mobile-title-row"><div><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorDisplay}</small></div>${actionHtml}</div>`;
 
                 groupHtml += `<tr><td data-label="書名/作者">${versionHeader}${titleContentHtml}</td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress, 'status')}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置">${book.ePlatform.split(/[，,]/).map(loc => `<span class="${getPillClass(loc.trim(), 'location')}" onclick="setFilter('位置','${loc.trim()}')">${loc.trim()}</span>`).join(' ')}</td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況">${buyStatusHtml}</td><td data-label="評價/重看">${evalDisplay}</td>`;
 
@@ -589,19 +627,15 @@
                         });
                     }
                     book.bookCategory.split(/[，,]/).forEach(c => {
-                        tagHtml += `<span class="${getPillClass(c.trim(), 'main')}" onclick="setFilter('類型','c.trim()')">${c.trim()}</span>`;
+                        tagHtml += `<span class="${getPillClass(c.trim(), 'main')}" onclick="setFilter('類型','${c.trim()}')">${c.trim()}</span>`;
                     });
                     if(book.subCategory) {
                         book.subCategory.split(/[，,]/).forEach(s => {
                             tagHtml += `<span class="${getPillClass(s.trim(), 'category')}" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`;
                         });
                     }
-                    book.tags.forEach(t => {
-                        tagHtml += `<span class="${getPillClass(t, 'sub')}" onclick="setFilter('小標籤','${t}')">${t}</span>`;
-                    });
-                    if(book.relationId) {
-                        tagHtml += `<span class="${getPillClass(book.relationId, 'relation')}" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>`;
-                    }
+                    book.tags.forEach(t => { tagHtml += `<span class="${getPillClass(t, 'sub')}" onclick="setFilter('小標籤','${t}')">${t}</span>`; });
+                    if(book.relationId) { tagHtml += `<span class="${getPillClass(book.relationId, 'relation')}" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>`; }
                     groupHtml += `<td data-label="標籤">${tagHtml}</td><td data-label="備註" class="notes-column"><div class="notes-box">${book.notes || '-'}</div></td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
                 groupHtml += `</tr>`;
@@ -611,57 +645,12 @@
         renderPagination();
     }
 
-    function clearFilter() { 
-        currentFilter = { key: null, value: null }; 
-        secondFilter = null; 
-        document.getElementById('searchInput').value = ''; 
-        document.getElementById('ratingFilter').value = ""; 
-        document.getElementById('contentSection').style.display = 'none'; 
-        updateCategoryButtons(); updateSubFilterButtons(); updateStats(); 
-        window.scrollTo({ top: 0, behavior: 'smooth' }); 
-    }
-
-    function setFilter(key, value) { 
-        if (key === '作者') { document.getElementById('searchInput').value = value; applyFilters(true); return; } 
-        if (key === 'SHOW_ALL') { 
-            document.getElementById('searchInput').value = ''; 
-            document.getElementById('ratingFilter').value = ""; 
-            currentFilter = { key: null, value: null }; 
-            secondFilter = null;
-            applyFilters(true); 
-            return; 
-        } 
-        currentFilter = { key, value }; secondFilter = null; currentPage = 1; applyFilters(true); 
-    }
-
+    function clearFilter() { currentFilter = { key: null, value: null }; secondFilter = null; document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('contentSection').style.display = 'none'; updateCategoryButtons(); updateSubFilterButtons(); updateStats(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function setFilter(key, value) { if (key === '作者') { document.getElementById('searchInput').value = value; applyFilters(true); return; } if (key === 'SHOW_ALL') { document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; currentFilter = { key: null, value: null }; secondFilter = null; applyFilters(true); return; } currentFilter = { key, value }; secondFilter = null; currentPage = 1; applyFilters(true); }
     function updateCategoryButtons() { const p = document.getElementById('categoryPanel'); const catsSet = new Set(); allBooks.forEach(b => b.bookCategory.split(/[，,]/).forEach(c => catsSet.add(c.trim()))); const cats = Array.from(catsSet).sort(); p.innerHTML = `<button class="cat-btn ${!currentFilter.key ? 'active' : ''}" onclick="setFilter('SHOW_ALL', null)">📂 顯示全部</button>`; cats.forEach(c => { p.innerHTML += `<button class="cat-btn ${currentFilter.value === c ? 'active' : ''}" onclick="setFilter('類型','${c}')">${c}</button>`; }); }
-
-    function updateSubFilterButtons() { 
-        const panel = document.getElementById('subFilterPanel'); 
-        if (currentFilter.key !== '類型') { panel.style.display = 'none'; return; } 
-        let subCatsSet = new Set(), tagsSet = new Set(); 
-        allBooks.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value)).forEach(b => { 
-            if (b.subCategory) b.subCategory.split(/[，,]/).forEach(s => subCatsSet.add(s.trim())); 
-            if (b.tags) b.tags.forEach(t => tagsSet.add(t.trim())); 
-        }); 
-        if (subCatsSet.size === 0 && tagsSet.size === 0) { panel.style.display = 'none'; return; } 
-        panel.style.display = 'flex'; panel.innerHTML = '';
-        if(subCatsSet.size > 0) {
-            const row = document.createElement('div'); row.className = 'sub-filter-row';
-            row.innerHTML = '<div class="sub-filter-label">進階篩選：書籍類別</div>';
-            Array.from(subCatsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); });
-            panel.appendChild(row);
-        }
-        if(tagsSet.size > 0) {
-            const row = document.createElement('div'); row.className = 'sub-filter-row';
-            row.innerHTML = '<div class="sub-filter-label">進階篩選：標籤</div>';
-            Array.from(tagsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); });
-            panel.appendChild(row);
-        }
-    }
-
+    function updateSubFilterButtons() { const panel = document.getElementById('subFilterPanel'); if (currentFilter.key !== '類型') { panel.style.display = 'none'; return; } let subCatsSet = new Set(), tagsSet = new Set(); allBooks.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value)).forEach(b => { if (b.subCategory) b.subCategory.split(/[，,]/).forEach(s => subCatsSet.add(s.trim())); if (b.tags) b.tags.forEach(t => tagsSet.add(t.trim())); }); if (subCatsSet.size === 0 && tagsSet.size === 0) { panel.style.display = 'none'; return; } panel.style.display = 'flex'; panel.innerHTML = ''; if(subCatsSet.size > 0) { const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = '<div class="sub-filter-label">進階篩選：書籍類別</div>'; Array.from(subCatsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); }); panel.appendChild(row); } if(tagsSet.size > 0) { const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = '<div class="sub-filter-label">進階篩選：標籤</div>'; Array.from(tagsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); }); panel.appendChild(row); } }
     function renderPagination() { const totalPages = Math.ceil(currentFilteredGroups.length / itemsPerPage); const container = document.getElementById('pagination'); container.innerHTML = ''; if (totalPages <= 1) return; for (let i = 1; i <= totalPages; i++) { const btn = document.createElement('button'); btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`; btn.onclick = () => { currentPage = i; renderTable(); window.scrollTo({ top: document.getElementById('contentSection').offsetTop - 50, behavior: 'smooth' }); }; container.appendChild(btn); } }
-    function handleSingleVolume(cb) { const v = document.getElementById('volume'); v.disabled = cb.checked; if (cb.checked) v.value = 1; }
+    function handleSingleVolume(cb) { const v = document.getElementById('volume'); const u = document.getElementById('volumeUnit'); const p = document.getElementById('hasPrologue'); v.disabled = cb.checked; u.disabled = cb.checked; p.disabled = cb.checked; if (cb.checked) v.value = 1; }
     async function deleteBook(t, l, f) { if (!confirm(`確定刪除？`)) return; document.getElementById('loading').style.display='flex'; try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', title: t, language: l, format: f }) }); await loadFromCloud(); } catch (e) { alert("刪除失敗"); } document.getElementById('loading').style.display='none'; }
     loadFromCloud();
 </script>
