@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V14.9 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V15.3 Final</title>
     <style>
-        /* --- 承襲 V14.8 UI 樣式 --- */
+        /* --- 承襲 V15.2 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -38,18 +38,17 @@
         #searchInput { flex: 1; padding: 12px 20px; border-radius: 25px; border: 2px solid #007bff; font-size: 16px; }
         .search-trigger-btn { background: #007bff; color: white; border: none; width: 50px; height: 46px; border-radius: 23px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; }
 
-        /* --- [更新] 標籤與狀態樣式 --- */
         .tag-pill { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin-right: 5px; margin-bottom: 5px; cursor: pointer; border: none; transition: 0.1s; vertical-align: middle; }
         .tag-pill:hover { opacity: 0.8; }
         
-        .pill-publisher { background: #6c757d !important; color: white !important; }
-        .pill-serial { background: #01814A !important; color: white !important; }
-        .pill-drama { background: #007979 !important; color: white !important; }
+        .pill-publisher { background: #019858 !important; color: white !important; }
+        .pill-serial { background: #00CACA !important; color: white !important; }
+        .pill-drama { background: #81C0C0 !important; color: white !important; }
         .pill-main { background: #0000E3 !important; color: white !important; }
-        .pill-sub { background: #C4E1FF !important; color: black !important; } /* [更新] 淺藍底黑字 */
+        .pill-category { background: #4A4AFF !important; color: white !important; }
+        .pill-sub { background: #C4E1FF !important; color: black !important; }
         .pill-relation { background: #7D7DFF !important; color: white !important; font-weight: bold; }
         
-        /* [更新] 正常狀態樣式 (已購買/已讀等) */
         .status-pill { background: #0077FF !important; color: white !important; font-weight: bold; }
         .alert-pill { background: #dc3545 !important; color: white !important; font-weight: bold; }
         
@@ -162,7 +161,7 @@
         </div>
 
         <div class="form-full"><label>標籤 (逗號隔開) ⁂</label><input type="text" id="tags" list="tagOptionList" placeholder="例：推理"></div>
-        <div class="form-full"><label>關聯 ID *</label><input type="text" id="relationId" placeholder="例：HP"></div>
+        <div class="form-full"><label>關聯 ID *</label><input type="text" id="relationId" list="relationIdList" placeholder="例：HP"></div>
         <div class="form-full"><label>備註</label><textarea id="notes" rows="2" placeholder="詳細備註..."></textarea></div>
         
         <div class="btn-group-vertical">
@@ -174,7 +173,7 @@
         </div>
     </div>
 
-    <datalist id="authorList"></datalist><datalist id="natList"></datalist><datalist id="catList"></datalist><datalist id="subCatList"></datalist><datalist id="langList"></datalist><datalist id="formatList"></datalist><datalist id="platformList"></datalist><datalist id="workStatusList"></datalist><datalist id="readList"></datalist><datalist id="tagOptionList"></datalist><datalist id="publisherList"></datalist><datalist id="serialPlatformList"></datalist>
+    <datalist id="authorList"></datalist><datalist id="natList"></datalist><datalist id="catList"></datalist><datalist id="subCatList"></datalist><datalist id="langList"></datalist><datalist id="formatList"></datalist><datalist id="platformList"></datalist><datalist id="workStatusList"></datalist><datalist id="readList"></datalist><datalist id="tagOptionList"></datalist><datalist id="publisherList"></datalist><datalist id="serialPlatformList"></datalist><datalist id="relationIdList"></datalist>
 
     <div id="categoryPanel" class="category-container"></div>
     <div id="subFilterPanel" class="sub-filter-container"></div>
@@ -187,7 +186,17 @@
     <div id="contentSection" style="display: none;">
         <table id="bookTable">
             <thead>
-                <tr><th style="width:120px;">操作</th><th style="width:130px;">書名/作者</th><th style="width:90px;">閱讀狀態</th><th style="width:120px;">書籍位置</th><th style="width:120px;">形式</th><th style="width:130px;">購買狀況</th><th style="width:150px;">標籤</th><th>備註</th></tr>
+                <tr>
+                    <th style="width:120px;">操作</th>
+                    <th style="width:130px;">書名/作者</th>
+                    <th style="width:90px;">閱讀狀態</th>
+                    <th style="width:120px;">書籍位置</th>
+                    <th style="width:120px;">形式</th>
+                    <th style="width:130px;">購買狀況</th>
+                    <th style="width:160px;">評價/重看</th>
+                    <th style="width:200px;">標籤</th>
+                    <th>備註</th>
+                </tr>
             </thead>
             <tbody id="bookTableBody"></tbody>
         </table>
@@ -213,16 +222,13 @@
         else { discardZone.style.display = 'none'; document.getElementById('canDiscard').checked = false; document.getElementById('willHide').checked = false; }
     }
 
-    /* --- [更新] 視覺邏輯：正常狀態改為 #0077FF --- */
     function getPillClass(text, type) {
         if (!text) return 'tag-pill';
-        const alertKeywords = ['未', '沒', '重複', '缺', '不', '可賣掉', '想隱藏'];
+        const alertKeywords = ['未', '沒', '重複', '缺', '不'];
         if (alertKeywords.some(k => text.includes(k))) return 'tag-pill alert-pill';
-        
-        // 如果是狀態類別 (閱讀狀態、購買狀態)，套用新的藍色
         if (type === 'status') return 'tag-pill status-pill';
-
         if (type === 'main') return 'tag-pill pill-main';
+        if (type === 'category') return 'tag-pill pill-category';
         if (type === 'serial') return 'tag-pill pill-serial';
         if (type === 'drama') return 'tag-pill pill-drama';
         if (type === 'publisher') return 'tag-pill pill-publisher';
@@ -363,8 +369,9 @@
         document.getElementById('syncUnlockBtn').style.display = 'none'; editingTarget = null; isSyncMode = false;
     }
 
+    /* --- [優化] 自動記憶功能 --- */
     function updateDatalists() {
-        const getU = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-');
+        const getU = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-').sort();
         const getSplitU = (key) => {
             let set = new Set();
             allBooks.forEach(b => {
@@ -382,6 +389,7 @@
         fill('platformList', getSplitU('serialPlatform')); fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); 
         fill('tagOptionList', getSplitU('tags')); fill('publisherList', getU('publisher')); 
         fill('serialPlatformList', getSplitU('serialPlatform'));
+        fill('relationIdList', getU('relationId')); // [新增] 關聯 ID 自動記憶選單
     }
 
     function applyFilters(isManual = true) {
@@ -416,7 +424,6 @@
         p.innerHTML = `<div class="stats-item">總圖書量：<strong>${allBooks.length}</strong> 本</div><div class="stats-item">書籍類型統計：<strong>${catStr.trim()}</strong></div>`;
     }
 
-    /* --- [更新] 渲染邏輯：色彩修正與標籤排序 --- */
     function renderTable() {
         const tbody = document.getElementById('bookTableBody'); tbody.innerHTML = '';
         const start = (currentPage - 1) * itemsPerPage;
@@ -428,13 +435,16 @@
                 const authorDisplay = `${book.author} (${book.nationality})`;
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 const versionHeader = group.books.length > 1 ? `<div class="version-pill-mobile">版本 ${idx+1}</div>` : '';
-                let statusTags = "";
-                if (book.canDiscard) statusTags += `<span style="color:#dc3545; font-weight:bold;">【可賣掉/丟掉】</span> `;
-                if (book.willHide) statusTags += `<span style="color:#dc3545; font-weight:bold;">【想隱藏】</span> `;
-                let noteDisplay = (statusTags + (book.notes || '')).trim() || '-';
+                
+                let ratingStars = "⭐".repeat(parseInt(book.rating) || 0);
+                let evalDisplay = `<div>${ratingStars} (${book.reRead || '未設定'})</div>`;
+                if (book.canDiscard) evalDisplay += `<div style="color:#dc3545; font-size:11px; font-weight:bold;">【可賣掉/丟掉】</div>`;
+                if (book.willHide) evalDisplay += `<div style="color:#dc3545; font-size:11px; font-weight:bold;">【想隱藏】</div>`;
 
                 groupHtml += `<tr><td data-label="操作">${versionHeader}<button style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="editBook(${params})">修改</button><button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-left:4px;" onclick="deleteBook(${params})">刪除</button></td><td data-label="書名/作者"><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorDisplay}</small></td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress, 'status')}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況"><div>${book.volume} ${book.workStatus}</div><span class="${getPillClass(book.buyStatus, 'status')}" onclick="setFilter('購買狀態','${book.buyStatus}')">(${book.buyStatus})</span></td>`;
                 
+                groupHtml += `<td data-label="評價/重看">${evalDisplay}</td>`;
+
                 if (isFirst) {
                     let tagHtml = '';
                     if(book.publisher) tagHtml += `<span class="${getPillClass(book.publisher, 'publisher')}" onclick="setFilter('出版社','${book.publisher}')">${book.publisher}</span>`;
@@ -450,7 +460,7 @@
                     });
                     if(book.subCategory) {
                         book.subCategory.split(/[，,]/).forEach(s => {
-                            tagHtml += `<span class="${getPillClass(s.trim(), 'sub')}" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`;
+                            tagHtml += `<span class="${getPillClass(s.trim(), 'category')}" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`;
                         });
                     }
                     book.tags.forEach(t => {
@@ -459,7 +469,7 @@
                     if(book.relationId) {
                         tagHtml += `<span class="${getPillClass(book.relationId, 'relation')}" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>`;
                     }
-                    groupHtml += `<td data-label="標籤">${tagHtml}</td><td data-label="備註"><div class="notes-box">${noteDisplay}</div></td>`;
+                    groupHtml += `<td data-label="標籤">${tagHtml}</td><td data-label="備註"><div class="notes-box">${book.notes || '-'}</div></td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
                 groupHtml += `</tr>`;
             });
