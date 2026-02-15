@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V17.5.1</title>
+    <title>📚 ㄎㄇ的購書紀錄 V17.6</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -86,7 +86,7 @@
         .pill-relation { background: #7D7DFF !important; color: white !important; font-weight: bold; }
         .status-pill { background: #0077FF !important; color: white !important; font-weight: bold; }
         .alert-pill { background: #dc3545 !important; color: white !important; font-weight: bold; }
-        .pill-location { background: #177245 !important; color: white !important; } /* [更新] 位置顏色改為 #177245 底白字 */
+        .pill-location { background: #177245 !important; color: white !important; }
         
         .pill-multi-version { 
             background: #8AECFF !important; 
@@ -503,8 +503,14 @@
     }
 
     function applyVersionLock() {
-        const lockFields = ['title', 'nationality', 'relationId', 'workStatus', 'tags', 'publisher', 'serialPlatform', 'rating', 'reRead', 'isAudioDrama', 'willHide'];
+        // [更新] 除了作者與類型，額外解鎖 'publisher' 與 'serialPlatform'
+        const lockFields = ['title', 'nationality', 'relationId', 'workStatus', 'tags', 'rating', 'reRead', 'isAudioDrama', 'willHide'];
         lockFields.forEach(id => document.getElementById(id).classList.add('locked-field'));
+        
+        // 明確確保解鎖欄位沒有鎖定類別
+        const unlockIds = ['author', 'bookCategory', 'publisher', 'serialPlatform'];
+        unlockIds.forEach(id => document.getElementById(id).classList.remove('locked-field'));
+        
         document.querySelectorAll('input[name="typeCheck"]').forEach(cb => cb.disabled = false);
     }
 
