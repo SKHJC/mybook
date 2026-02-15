@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V14.5 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V14.7 Final</title>
     <style>
-        /* --- 承襲 V14.4 UI 樣式 --- */
+        /* --- 承襲 V14.6 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -39,7 +39,6 @@
         .search-trigger-btn { background: #007bff; color: white; border: none; width: 50px; height: 46px; border-radius: 23px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; }
 
         .tag-pill { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 13px; background: #e2f3f5; color: #0c5460; margin-right: 5px; margin-bottom: 5px; cursor: pointer; border: none; transition: 0.1s; vertical-align: middle; }
-        .tag-pill:hover { opacity: 0.8; }
         .pill-main { background: #007bff !important; color: white !important; }
         .pill-sub { background: #d4edda !important; color: #155724 !important; }
         .pill-serial { background: #6c757d !important; color: white !important; }
@@ -115,8 +114,8 @@
         
         <div><label>出版社 *</label><input type="text" id="publisher" list="publisherList" placeholder="例：皇冠"></div>
         <div>
-            <label>連載平台 *</label>
-            <input type="text" id="serialPlatform" list="serialPlatformList" placeholder="例：Kakao">
+            <label>連載平台 (逗號隔開) ⁂</label>
+            <input type="text" id="serialPlatform" list="serialPlatformList" placeholder="例：Kakao, 漫漫">
             <label class="checkbox-container">
                 <input type="checkbox" id="isAudioDrama"> <span>此為廣播劇連載平台</span>
             </label>
@@ -135,6 +134,9 @@
             <div id="discardZone" style="display:none;">
                 <label class="checkbox-container" style="color: #dc3545;">
                     <input type="checkbox" id="canDiscard"> <span>可賣掉/丟掉</span>
+                </label>
+                <label class="checkbox-container" style="color: #dc3545;">
+                    <input type="checkbox" id="willHide"> <span>想隱藏</span>
                 </label>
             </div>
         </div>
@@ -201,12 +203,12 @@
     function handleRatingChange(el) {
         const discardZone = document.getElementById('discardZone');
         if (parseInt(el.value) <= 3) { discardZone.style.display = 'block'; } 
-        else { discardZone.style.display = 'none'; document.getElementById('canDiscard').checked = false; }
+        else { discardZone.style.display = 'none'; document.getElementById('canDiscard').checked = false; document.getElementById('willHide').checked = false; }
     }
 
     function getPillClass(text, isMain = false) {
         if (!text) return 'tag-pill';
-        const alertKeywords = ['未', '沒', '重複', '缺', '不', '可賣掉'];
+        const alertKeywords = ['未', '沒', '重複', '缺', '不', '可賣掉', '想隱藏'];
         if (alertKeywords.some(k => text.includes(k))) return 'tag-pill alert-pill';
         return isMain ? 'tag-pill pill-main' : 'tag-pill';
     }
@@ -225,13 +227,15 @@
                 relationId: row[12], notes: row[13], nationality: row[14] || '',
                 publisher: row[15] || '', serialPlatform: row[16] || '',
                 rating: row[17] || '', canDiscard: row[18] === 'TRUE' || row[18] === true, reRead: row[19] || '',
-                isAudioDrama: row[20] === 'TRUE' || row[20] === true
+                isAudioDrama: row[20] === 'TRUE' || row[20] === true,
+                willHide: row[21] === 'TRUE' || row[21] === true
             }));
             updateDatalists(); updateCategoryButtons(); updateStats();
         } catch (e) { console.error(e); }
         document.getElementById('loading').style.display='none';
     }
 
+    /* --- [補回預覽邏輯] --- */
     async function checkAndSave(mode) {
         const titleVal = document.getElementById('title').value;
         if (!titleVal) { alert("書名為必填！"); return; }
@@ -257,13 +261,18 @@
             serialPlatform: document.getElementById('serialPlatform').value,
             rating: document.getElementById('rating').value, canDiscard: document.getElementById('canDiscard').checked,
             reRead: document.getElementById('reRead').value,
-            isAudioDrama: document.getElementById('isAudioDrama').checked
+            isAudioDrama: document.getElementById('isAudioDrama').checked,
+            willHide: document.getElementById('willHide').checked
         };
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
             alert(mode === 'update' ? "更新成功！" : "儲存成功！");
-            resetForm(); await loadFromCloud();
-            document.getElementById('searchInput').value = titleVal;
+            
+            // 重要：補回跳轉預覽
+            const searchName = titleVal;
+            resetForm(); 
+            await loadFromCloud();
+            document.getElementById('searchInput').value = searchName;
             applyFilters(true);
             window.scrollTo({ top: document.getElementById('contentSection').offsetTop - 50, behavior: 'smooth' });
         } catch (e) { alert("操作失敗"); }
@@ -294,6 +303,7 @@
         document.getElementById('serialPlatform').value = book.serialPlatform || '';
         document.getElementById('rating').value = book.rating;
         document.getElementById('canDiscard').checked = book.canDiscard;
+        document.getElementById('willHide').checked = book.willHide;
         document.getElementById('reRead').value = book.reRead;
         document.getElementById('isAudioDrama').checked = book.isAudioDrama;
         handleRatingChange(document.getElementById('rating'));
@@ -308,7 +318,7 @@
     }
 
     function applyVersionLock() {
-        const lockFields = ['title', 'author', 'nationality', 'bookCategory', 'relationId', 'workStatus', 'readProgress', 'tags', 'publisher', 'serialPlatform', 'rating', 'reRead', 'isAudioDrama'];
+        const lockFields = ['title', 'author', 'nationality', 'bookCategory', 'relationId', 'workStatus', 'readProgress', 'tags', 'publisher', 'serialPlatform', 'rating', 'reRead', 'isAudioDrama', 'willHide'];
         lockFields.forEach(id => document.getElementById(id).classList.add('locked-field'));
     }
 
@@ -332,51 +342,32 @@
     function resetForm() {
         document.getElementById('inputForm').querySelectorAll('input, select, textarea').forEach(el => { el.value = ''; el.classList.remove('locked-field'); });
         document.getElementById('isSingleVolume').checked = false; document.getElementById('canDiscard').checked = false;
-        document.getElementById('isAudioDrama').checked = false; document.getElementById('discardZone').style.display = 'none';
+        document.getElementById('willHide').checked = false; document.getElementById('isAudioDrama').checked = false; 
+        document.getElementById('discardZone').style.display = 'none';
         document.getElementById('saveBtn').style.display = 'block'; document.getElementById('saveBtn').innerText = "儲存書單至雲端";
         document.getElementById('updateBtn').style.display = 'none'; document.getElementById('updateBtn').innerText = "更新此版本資訊";
         document.getElementById('cancelBtn').style.display = 'none'; document.getElementById('multiVersionBtn').style.display = 'block';
         document.getElementById('syncUnlockBtn').style.display = 'none'; editingTarget = null; isSyncMode = false;
     }
 
-    /* --- [優化] 自動記憶功能：拆分逗號、去除重複、排序 --- */
     function updateDatalists() {
         const getU = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-');
-        
-        // 針對標籤、類型、類別等逗號隔開的內容進行深度拆分
         const getSplitU = (key) => {
             let set = new Set();
             allBooks.forEach(b => {
                 let val = b[key];
-                if (Array.isArray(val)) {
-                    val.forEach(v => set.add(v.trim()));
-                } else if (typeof val === 'string' && val.trim() !== '') {
-                    val.split(/[，,]/).forEach(v => {
-                        const trimmed = v.trim();
-                        if (trimmed) set.add(trimmed);
-                    });
+                if (Array.isArray(val)) { val.forEach(v => set.add(v.trim())); } 
+                else if (typeof val === 'string' && val.trim() !== '') {
+                    val.split(/[，,]/).forEach(v => { const trimmed = v.trim(); if (trimmed) set.add(trimmed); });
                 }
             });
             return [...set].sort();
         };
-
-        const fill = (id, list) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = list.map(v => `<option value="${v}">`).join('');
-        };
-
-        fill('authorList', getU('author'));
-        fill('natList', getU('nationality'));
-        fill('catList', getSplitU('bookCategory')); // 修復：支援複數類型拆分
-        fill('subCatList', getSplitU('subCategory')); // 修復：支援複數類別拆分
-        fill('langList', getU('language')); 
-        fill('formatList', getSplitU('format')); 
-        fill('platformList', getU('ePlatform')); 
-        fill('workStatusList', getU('workStatus')); 
-        fill('readList', getU('readProgress')); 
-        fill('tagOptionList', getSplitU('tags')); // 修復：標籤唯一化顯示
-        fill('publisherList', getU('publisher')); 
-        fill('serialPlatformList', getU('serialPlatform'));
+        const fill = (id, list) => { const el = document.getElementById(id); if (el) el.innerHTML = list.map(v => `<option value="${v}">`).join(''); };
+        fill('authorList', getU('author')); fill('natList', getU('nationality')); fill('catList', getSplitU('bookCategory')); 
+        fill('subCatList', getSplitU('subCategory')); fill('langList', getU('language')); fill('formatList', getSplitU('format')); 
+        fill('platformList', getU('ePlatform')); fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); 
+        fill('tagOptionList', getSplitU('tags')); fill('publisherList', getU('publisher')); fill('serialPlatformList', getSplitU('serialPlatform'));
     }
 
     function applyFilters(isManual = true) {
@@ -390,7 +381,7 @@
         if (currentFilter.key === '購買狀態') filtered = allBooks.filter(b => b.buyStatus === currentFilter.value);
         if (currentFilter.key === '閱讀狀態') filtered = allBooks.filter(b => b.readProgress === currentFilter.value);
         if (currentFilter.key === '關聯IP') filtered = allBooks.filter(b => b.relationId === currentFilter.value);
-        if (currentFilter.key === '連載平台') filtered = allBooks.filter(b => b.serialPlatform === currentFilter.value);
+        if (currentFilter.key === '連載平台') filtered = allBooks.filter(b => b.serialPlatform.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
         if (currentFilter.key === '小標籤') { filtered = allBooks.filter(b => { 
             const subCats = b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : []; 
             const tags = Array.isArray(b.tags) ? b.tags : (b.tags ? b.tags.split(/[，,]/).map(s=>s.trim()) : []);
@@ -421,15 +412,18 @@
                 const authorDisplay = `${book.author} (${book.nationality})` + (book.publisher ? ` | ${book.publisher}` : '');
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 const versionHeader = group.books.length > 1 ? `<div class="version-pill-mobile">版本 ${idx+1}</div>` : '';
-                let noteDisplay = book.notes || '-'; if (book.canDiscard) { noteDisplay = `<span style="color:#dc3545; font-weight:bold;">【可賣掉/丟掉】</span> ` + (book.notes || ''); }
+                let statusTags = "";
+                if (book.canDiscard) statusTags += `<span style="color:#dc3545; font-weight:bold;">【可賣掉/丟掉】</span> `;
+                if (book.willHide) statusTags += `<span style="color:#dc3545; font-weight:bold;">【想隱藏】</span> `;
+                let noteDisplay = (statusTags + (book.notes || '')).trim() || '-';
 
                 groupHtml += `<tr><td data-label="操作">${versionHeader}<button style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="editBook(${params})">修改</button><button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-left:4px;" onclick="deleteBook(${params})">刪除</button></td><td data-label="書名/作者"><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorDisplay}</small></td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況"><div>${book.volume} ${book.workStatus}</div><span class="${getPillClass(book.buyStatus)}" onclick="setFilter('購買狀態','${book.buyStatus}')">(${book.buyStatus})</span></td>`;
                 if (isFirst) {
                     const relationPill = book.relationId ? `<span class="tag-pill pill-relation" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>` : '';
-                    const serialPill = book.serialPlatform ? `<span class="tag-pill ${book.isAudioDrama ? 'pill-drama' : 'pill-serial'}" onclick="setFilter('連載平台','${book.serialPlatform}')">${book.serialPlatform}</span>` : '';
+                    const serialPills = book.serialPlatform ? book.serialPlatform.split(/[，,]/).map(sp => `<span class="tag-pill ${book.isAudioDrama ? 'pill-drama' : 'pill-serial'}" onclick="setFilter('連載平台','${sp.trim()}')">${sp.trim()}</span>`).join('') : '';
                     const catPills = book.bookCategory.split(/[，,]/).map(c => `<span class="${getPillClass(c.trim(), true)}" onclick="setFilter('類型','${c.trim()}')">${c.trim()}</span>`).join('');
                     const subCatPills = book.subCategory ? book.subCategory.split(/[，,]/).map(s => `<span class="tag-pill pill-main" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`).join('') : '';
-                    groupHtml += `<td data-label="標籤">${relationPill}${serialPill}${catPills}${subCatPills}${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td><td data-label="備註"><div class="notes-box">${noteDisplay}</div></td>`;
+                    groupHtml += `<td data-label="標籤">${relationPill}${serialPills}${catPills}${subCatPills}${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td><td data-label="備註"><div class="notes-box">${noteDisplay}</div></td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
                 groupHtml += `</tr>`;
             });
