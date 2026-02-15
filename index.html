@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V16.9 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V17.0 Final</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -38,9 +38,9 @@
         
         .locked-field { background-color: #e9ecef !important; cursor: not-allowed; border: 1px solid #ccc !important; color: #6c757d; }
         
-        /* [更新] 勾選選項樣式：文字稍微縮小至 12px */
+        /* [更新] 勾選選項樣式：框與字同步縮小 */
         .checkbox-container { display: flex; align-items: center; gap: 5px; margin-top: 8px; cursor: pointer; user-select: none; color: #666; font-size: 12px; }
-        .checkbox-container input { width: 16px; height: 16px; cursor: pointer; margin: 0; }
+        .checkbox-container input { width: 13px; height: 13px; cursor: pointer; margin: 0; }
         .checkbox-row { display: flex; flex-wrap: wrap; gap: 10px; grid-column: 1 / -1; margin-top: -5px; margin-bottom: 10px; }
 
         .btn-group-vertical { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
@@ -91,7 +91,9 @@
         td { padding: 15px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
 
         .notes-column { min-width: 220px; word-break: break-all; white-space: normal; line-height: 1.6; color: #555; }
-        .notes-box { padding: 5px 0; font-size: 14px; }
+        
+        /* [更新] 備註文字稍微縮小至 13px */
+        .notes-box { padding: 5px 0; font-size: 13px; }
 
         .action-btns { margin-top: 8px; display: flex; gap: 5px; }
         .btn-edit-small { background:#28a745; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size: 12px; }
@@ -485,9 +487,7 @@
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const starTerm = document.getElementById('ratingFilter').value;
         let filtered = allBooks;
-
         if (!currentFilter.key && !searchTerm && !starTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
-        
         if (starTerm) filtered = filtered.filter(b => b.rating.toString() === starTerm);
         if (currentFilter.key === '類型') filtered = filtered.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
         if (currentFilter.key === '作者') filtered = filtered.filter(b => b.author === currentFilter.value);
@@ -498,20 +498,16 @@
         if (currentFilter.key === '關聯IP') filtered = filtered.filter(b => b.relationId === currentFilter.value);
         if (currentFilter.key === '出版社') filtered = filtered.filter(b => b.publisher === currentFilter.value);
         if (currentFilter.key === '連載平台') filtered = filtered.filter(b => b.serialPlatform.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
-        
         if (currentFilter.key === '小標籤') { filtered = filtered.filter(b => { 
             const subCats = b.subCategory ? b.subCategory.split(/[，,]/).map(s=>s.trim()) : []; 
             const tags = Array.isArray(b.tags) ? b.tags : (b.tags ? b.tags.split(/[，,]/).map(s=>s.trim()) : []);
             return [...subCats, ...tags].includes(currentFilter.value); 
         }); }
-
         if (searchTerm) filtered = filtered.filter(b => b.title.toLowerCase().includes(searchTerm) || b.author.toLowerCase().includes(searchTerm) || b.notes.toLowerCase().includes(searchTerm));
-        
         const groups = []; filtered.forEach(b => { const k = b.title + "_" + b.author; let g = groups.find(x => x.key === k); if (!g) { g = { key: k, books: [] }; groups.push(g); } g.books.push(b); });
         currentFilteredGroups = groups;
         document.getElementById('contentSection').style.display = 'block';
         renderTable(); updateCategoryButtons(); updateSubFilterButtons(); updateStats(); 
-
         if (isManual && (starTerm || currentFilter.key)) {
             setTimeout(() => {
                 const target = document.getElementById('contentSection');
@@ -538,31 +534,17 @@
                 const authorDisplay = `${book.author} (${book.nationality})`;
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 const versionHeader = group.books.length > 1 ? `<div class="version-pill-mobile">版本 ${idx+1}</div>` : '';
-                
                 const volText = book.volume.toString().includes('全') ? '全一集' : `共 ${book.volume} 集`;
                 const alertKeywords = ['坑', '未', '不'];
                 const workStatusStyle = alertKeywords.some(k => book.workStatus.includes(k)) ? 'color:#dc3545; font-weight:bold;' : '';
                 const buyStatusHtml = `<div style="margin-bottom:5px;">${volText} (<span style="${workStatusStyle}">${book.workStatus}</span>)</div><span class="${getPillClass(book.buyStatus, 'status')}" onclick="setFilter('購買狀態','${book.buyStatus}')">${book.buyStatus}</span>`;
-
                 let ratingStars = "⭐".repeat(parseInt(book.rating) || 0);
                 let evalDisplay = `<div style="margin-bottom:5px;">${ratingStars}</div><div>(${book.reRead || '未設定'})</div>`;
                 if (book.canDiscard) evalDisplay += `<div style="color:#dc3545; font-size:11px; font-weight:bold; margin-top:5px;">【可賣掉/丟掉】</div>`;
                 if (book.willHide) evalDisplay += `<div style="color:#dc3545; font-size:11px; font-weight:bold; margin-top:2px;">【想隱藏】</div>`;
-
                 const actionHtml = `<div class="action-btns"><button class="btn-edit-small" onclick="editBook(${params})">修改</button><button class="btn-del-small" onclick="deleteBook(${params})">刪除</button></div>`;
-
-                const titleContentHtml = `
-                    <div class="mobile-title-row">
-                        <div>
-                            <strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br>
-                            <small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorDisplay}</small>
-                        </div>
-                        ${actionHtml}
-                    </div>
-                `;
-
+                const titleContentHtml = `<div class="mobile-title-row"><div><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorDisplay}</small></div>${actionHtml}</div>`;
                 groupHtml += `<tr><td data-label="書名/作者">${versionHeader}${titleContentHtml}</td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress, 'status')}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況">${buyStatusHtml}</td><td data-label="評價/重看">${evalDisplay}</td>`;
-
                 if (isFirst) {
                     let tagHtml = '';
                     if(book.publisher) tagHtml += `<span class="${getPillClass(book.publisher, 'publisher')}" onclick="setFilter('出版社','${book.publisher}')">${book.publisher}</span>`;
