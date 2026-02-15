@@ -3,29 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V16.2 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V16.6</title>
+    
     <style>
-        /* --- 核心排版與縮放修正 --- */
-        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
+        /* --- 核心排版：最大化寬度與最小留白 --- */
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 10px; margin: 0; color: #333; }
         
         .container { 
-            max-width: 1500px; 
+            width: 98%; 
+            max-width: none; 
             min-width: fit-content; 
-            margin: auto; 
+            margin: 10px auto; 
             background: white; 
             padding: 20px; 
             border-radius: 12px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease; /* 平滑縮放過渡 */
-        }
-
-        /* [更新] 橫式網頁 90% 比例縮放邏輯 */
-        @media (min-width: 801px) {
-            .container {
-                transform: scale(0.9); /* 整體縮放 90% */
-                transform-origin: top center; /* 以頂部中心點為基準縮放 */
-                margin-bottom: -5vh; /* 補償因縮放產生的底部空白 */
-            }
+            box-sizing: border-box;
         }
 
         .table-responsive {
@@ -37,6 +30,7 @@
 
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
         
+        /* 表單 UI */
         .form-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; padding: 25px; border: 1px solid #eee; border-radius: 12px; background: #fafafa; }
         .form-full { grid-column: 1 / -1; }
         label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #555; }
@@ -54,6 +48,27 @@
         .btn-cancel { background-color: #6c757d; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 16px; display: none; }
         .btn-sync-unlock { background-color: #17a2b8; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-bottom: 10px; display: none; }
 
+        /* 回首頁按鈕樣式 */
+        .bottom-zone { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; text-align: center; }
+        .btn-home { 
+            background: #007bff; 
+            color: white; 
+            padding: 12px 30px; 
+            border-radius: 30px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            border: none; 
+            cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(0,123,255,0.2); 
+            transition: 0.2s; 
+            margin-bottom: 20px; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            text-decoration: none;
+        }
+        .btn-home:hover { background: #0056b3; box-shadow: 0 6px 15px rgba(0,123,255,0.3); transform: translateY(-2px); }
+
         .category-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; }
         .cat-btn { background: #fff; color: #495057; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid #6c757d; transition: 0.2s; }
         .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
@@ -69,8 +84,8 @@
         #searchInput { flex: 1; padding: 12px 20px; border-radius: 25px; border: 2px solid #007bff; font-size: 16px; }
         .search-trigger-btn { background: #007bff; color: white; border: none; width: 50px; height: 46px; border-radius: 23px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; }
 
+        /* 標籤配色 */
         .tag-pill { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin-right: 5px; margin-bottom: 5px; cursor: pointer; border: none; transition: 0.1s; vertical-align: middle; }
-        .tag-pill:hover { opacity: 0.8; }
         .pill-publisher { background: #019858 !important; color: white !important; }
         .pill-serial { background: #00CACA !important; color: white !important; }
         .pill-drama { background: #81C0C0 !important; color: white !important; }
@@ -86,22 +101,24 @@
         th { background-color: #f8f9fa; color: #666; font-weight: bold; padding: 15px 10px; border-bottom: 2px solid #007bff; text-align: left; }
         td { padding: 15px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
 
+        /* [重點修正] 備註欄字體大小調整回 14px，與其他文字同步 */
         .notes-column { min-width: 220px; word-break: break-all; white-space: normal; line-height: 1.6; color: #555; }
-        .notes-box { padding: 5px 0; font-size: 13px; }
+        .notes-box { 
+            padding: 5px 0; 
+            font-size: 14px; 
+            font-family: inherit;
+        }
 
         .action-btns { margin-top: 8px; display: flex; gap: 5px; }
         .btn-edit-small { background:#28a745; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size: 12px; }
         .btn-del-small { background:#dc3545; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size: 12px; }
 
-        .bottom-zone { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-        .btn-home { background: #007bff; color: white; padding: 12px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,123,255,0.2); transition: 0.2s; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; margin-left: auto; margin-right: auto; }
-        
         .stats-panel { display: flex; flex-wrap: wrap; gap: 10px; padding: 15px; background: #f8f9fa; border-radius: 12px; border: 1px solid #eee; justify-content: center; }
         .stats-item { background: white; padding: 8px 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 14px; color: #444; border: 1px solid #fff; }
 
         @media (max-width: 800px) {
             .form-group { grid-template-columns: 1fr 1fr; }
-            .container { min-width: auto; transform: none !important; } /* 手機版不縮放 */
+            .container { width: 95%; min-width: auto; }
             .table-responsive { overflow-x: visible; }
             table, thead, tbody, th, td, tr { display: block; min-width: auto; }
             thead { display: none; }
@@ -111,7 +128,6 @@
             .mobile-title-row { display: flex; justify-content: space-between; align-items: flex-start; }
             .action-btns { margin-top: 0; }
             .notes-column { min-width: auto !important; }
-            .version-pill-mobile { display: block; background: #84b2e6; color: white; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 15px; margin: 10px 0 5px 0; text-align: left; width: fit-content; }
         }
 
         .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 30px 0; }
