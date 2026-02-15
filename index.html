@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V14.3 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V14.4 Final</title>
     <style>
-        /* --- 承襲 V14.2 UI 樣式 --- */
+        /* --- 承襲 V14.3 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -43,7 +43,7 @@
         .pill-main { background: #007bff !important; color: white !important; }
         .pill-sub { background: #d4edda !important; color: #155724 !important; }
         .pill-serial { background: #6c757d !important; color: white !important; }
-        .pill-drama { background: #003366 !important; color: white !important; } /* 廣播劇專用深藍 */
+        .pill-drama { background: #003366 !important; color: white !important; }
         .pill-relation { background: #6f42c1 !important; color: white !important; font-weight: bold; }
         .alert-pill { background: #dc3545 !important; color: white !important; font-weight: bold; }
         
@@ -147,6 +147,8 @@
                 <option>重看電子書</option>
                 <option>實體書電子書都會重看</option>
                 <option>一點都不想留</option>
+                <option>不繼續買</option>
+                <option>已隱藏</option>
             </select>
         </div>
 
@@ -223,7 +225,7 @@
                 relationId: row[12], notes: row[13], nationality: row[14] || '',
                 publisher: row[15] || '', serialPlatform: row[16] || '',
                 rating: row[17] || '', canDiscard: row[18] === 'TRUE' || row[18] === true, reRead: row[19] || '',
-                isAudioDrama: row[20] === 'TRUE' || row[20] === true // [新增] 廣播劇旗標
+                isAudioDrama: row[20] === 'TRUE' || row[20] === true
             }));
             updateDatalists(); updateCategoryButtons(); updateStats();
         } catch (e) { console.error(e); }
@@ -255,7 +257,7 @@
             serialPlatform: document.getElementById('serialPlatform').value,
             rating: document.getElementById('rating').value, canDiscard: document.getElementById('canDiscard').checked,
             reRead: document.getElementById('reRead').value,
-            isAudioDrama: document.getElementById('isAudioDrama').checked // [新增]
+            isAudioDrama: document.getElementById('isAudioDrama').checked
         };
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
@@ -293,7 +295,7 @@
         document.getElementById('rating').value = book.rating;
         document.getElementById('canDiscard').checked = book.canDiscard;
         document.getElementById('reRead').value = book.reRead;
-        document.getElementById('isAudioDrama').checked = book.isAudioDrama; // [新增]
+        document.getElementById('isAudioDrama').checked = book.isAudioDrama;
         handleRatingChange(document.getElementById('rating'));
 
         const relatedBooks = allBooks.filter(b => b.title === book.title && b.author === book.author);
@@ -330,8 +332,7 @@
     function resetForm() {
         document.getElementById('inputForm').querySelectorAll('input, select, textarea').forEach(el => { el.value = ''; el.classList.remove('locked-field'); });
         document.getElementById('isSingleVolume').checked = false; document.getElementById('canDiscard').checked = false;
-        document.getElementById('isAudioDrama').checked = false; // [新增]
-        document.getElementById('discardZone').style.display = 'none';
+        document.getElementById('isAudioDrama').checked = false; document.getElementById('discardZone').style.display = 'none';
         document.getElementById('saveBtn').style.display = 'block'; document.getElementById('saveBtn').innerText = "儲存書單至雲端";
         document.getElementById('updateBtn').style.display = 'none'; document.getElementById('updateBtn').innerText = "更新此版本資訊";
         document.getElementById('cancelBtn').style.display = 'none'; document.getElementById('multiVersionBtn').style.display = 'block';
@@ -389,7 +390,6 @@
                 groupHtml += `<tr><td data-label="操作">${versionHeader}<button style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="editBook(${params})">修改</button><button style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-left:4px;" onclick="deleteBook(${params})">刪除</button></td><td data-label="書名/作者"><strong style="color:#28a745; cursor:pointer" onclick="editBook(${params})">${book.title}</strong><br><small style="color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${authorDisplay}</small></td><td data-label="閱讀狀態"><span class="${getPillClass(book.readProgress)}" onclick="setFilter('閱讀狀態','${book.readProgress}')">${book.readProgress}</span></td><td data-label="書籍位置"><span class="tag-pill" style="background:#e9ecef;" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td><td data-label="形式"><div>${book.language}</div>${book.format.map(f => `<span class="tag-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')}</td><td data-label="購買狀況"><div>${book.volume} ${book.workStatus}</div><span class="${getPillClass(book.buyStatus)}" onclick="setFilter('購買狀態','${book.buyStatus}')">(${book.buyStatus})</span></td>`;
                 if (isFirst) {
                     const relationPill = book.relationId ? `<span class="tag-pill pill-relation" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>` : '';
-                    // [更新] 廣播劇平台樣式切換
                     const serialPill = book.serialPlatform ? `<span class="tag-pill ${book.isAudioDrama ? 'pill-drama' : 'pill-serial'}" onclick="setFilter('連載平台','${book.serialPlatform}')">${book.serialPlatform}</span>` : '';
                     const catPills = book.bookCategory.split(/[，,]/).map(c => `<span class="${getPillClass(c.trim(), true)}" onclick="setFilter('類型','${c.trim()}')">${c.trim()}</span>`).join('');
                     const subCatPills = book.subCategory ? book.subCategory.split(/[，,]/).map(s => `<span class="tag-pill pill-main" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`).join('') : '';
