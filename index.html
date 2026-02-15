@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V13.7 Final</title>
+    <title>📚 ㄎㄇ的購書紀錄 V13.8 Final</title>
     <style>
-        /* --- 承襲 V13.6 UI 樣式 --- */
+        /* --- 承襲 V13.7 UI 樣式 --- */
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f8f9fa; padding: 15px; margin: 0; color: #333; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: #333; font-size: 24px; margin-bottom: 20px; letter-spacing: 1px; }
@@ -212,6 +212,8 @@
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
             alert(mode === 'update' ? "更新成功！" : "儲存成功！");
+            
+            // [更新] 儲存後預覽邏輯：搜尋該書名，定位，但不完全鎖定在篩選狀態
             const searchName = titleVal;
             resetForm(); 
             await loadFromCloud();
@@ -393,8 +395,8 @@
                     const relationPill = book.relationId ? `<span class="tag-pill pill-relation" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>` : '';
                     const catPills = book.bookCategory.split(/[，,]/).map(c => `<span class="${getPillClass(c.trim(), true)}" onclick="setFilter('類型','${c.trim()}')">${c.trim()}</span>`).join('');
                     
-                    // --- [更新] 補上「書籍類別」標籤顯示與篩選功能 ---
-                    const subCatPills = book.subCategory ? book.subCategory.split(/[，,]/).map(s => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`).join('') : '';
+                    // [更新] 書籍類別改為深藍色底白字 (pill-main) 並維持複數顯示與篩選
+                    const subCatPills = book.subCategory ? book.subCategory.split(/[，,]/).map(s => `<span class="tag-pill pill-main" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`).join('') : '';
                     
                     groupHtml += `<td data-label="標籤">${relationPill}${catPills}${subCatPills}${book.tags.map(t => `<span class="tag-pill pill-sub" onclick="setFilter('小標籤','${t}')">${t}</span>`).join('')}</td><td data-label="備註">${book.notes ? `<div class="notes-box">${book.notes}</div>` : '-'}</td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
