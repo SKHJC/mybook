@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V17.6</title>
+    <title>📚 ㄎㄇ的購書紀錄 V17.8</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -104,7 +104,12 @@
         td { padding: 15px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
 
         .notes-column { min-width: 220px; word-break: break-all; white-space: normal; line-height: 1.6; color: #555; }
-        .notes-box { padding: 5px 0; font-size: 13px; }
+        .notes-box { padding: 5px 0; font-size: 13px; color: #333; font-weight: 500; }
+
+        /* 心得展示樣式 */
+        .review-toggle-btn { background: #fff; color: #6f42c1; border: 1px solid #d1c4e9; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 5px; display: inline-block; transition: 0.2s; }
+        .review-toggle-btn:hover { background: #f3f0ff; border-color: #6f42c1; }
+        .review-content { display: none; background: #fff9db; padding: 10px; border-radius: 8px; border-left: 4px solid #fcc419; margin-top: 8px; font-size: 13px; color: #444; white-space: pre-wrap; word-break: break-all; }
 
         .action-btns { margin-top: 8px; display: flex; gap: 5px; }
         .btn-edit-small { background:#28a745; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size: 12px; }
@@ -138,7 +143,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V17.8</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -252,6 +257,7 @@
         <div class="form-full"><label>標籤 (逗號隔開) ⁂</label><input type="text" id="tags" list="tagOptionList" placeholder="例：推理"></div>
         <div class="form-full"><label>關聯 ID *</label><input type="text" id="relationId" list="relationIdList" placeholder="例：HP"></div>
         <div class="form-full"><label>備註</label><textarea id="notes" rows="2" placeholder="詳細備註..."></textarea></div>
+        <div class="form-full"><label>心得簡評</label><textarea id="review" rows="3" placeholder="寫下你的讀後心得..."></textarea></div>
         
         <div class="btn-group-vertical">
             <button class="btn-sync-unlock" id="syncUnlockBtn" onclick="unlockForSync()">🔓 解鎖並同步所有版本內容</button>
@@ -296,7 +302,7 @@
                         <th style="width:130px;">購買狀況</th>
                         <th style="width:140px;">評價/重看</th>
                         <th style="width:200px;">標籤</th>
-                        <th style="width:230px;">備註</th>
+                        <th style="width:230px;">備註/心得</th>
                     </tr>
                 </thead>
                 <tbody id="bookTableBody"></tbody>
@@ -368,7 +374,8 @@
                     rating: row[17] || '', canDiscard: row[18] === 'TRUE' || row[18] === true, reRead: row[19] || '',
                     isAudioDrama: row[20] === 'TRUE' || row[20] === true,
                     willHide: row[21] === 'TRUE' || row[21] === true,
-                    authorRole: row[22] || ''
+                    authorRole: row[22] || '',
+                    review: row[23] || ''
                 };
             });
             updateDatalists(); updateCategoryButtons(); updateStats();
@@ -418,7 +425,8 @@
             reRead: document.getElementById('reRead').value,
             isAudioDrama: document.getElementById('isAudioDrama').checked,
             willHide: document.getElementById('willHide').checked,
-            authorRole: finalRole
+            authorRole: finalRole,
+            review: document.getElementById('review').value
         };
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
@@ -478,6 +486,7 @@
         document.getElementById('tags').value = book.tags.join(', ');
         document.getElementById('relationId').value = book.relationId;
         document.getElementById('notes').value = book.notes;
+        document.getElementById('review').value = book.review || '';
         document.getElementById('publisher').value = book.publisher || '';
         document.getElementById('serialPlatform').value = book.serialPlatform || '';
         document.getElementById('rating').value = book.rating;
@@ -503,14 +512,10 @@
     }
 
     function applyVersionLock() {
-        // [更新] 除了作者與類型，額外解鎖 'publisher' 與 'serialPlatform'
-        const lockFields = ['title', 'nationality', 'relationId', 'workStatus', 'tags', 'rating', 'reRead', 'isAudioDrama', 'willHide'];
+        const lockFields = ['title', 'nationality', 'relationId', 'workStatus', 'tags', 'rating', 'reRead', 'isAudioDrama', 'willHide', 'review'];
         lockFields.forEach(id => document.getElementById(id).classList.add('locked-field'));
-        
-        // 明確確保解鎖欄位沒有鎖定類別
         const unlockIds = ['author', 'bookCategory', 'publisher', 'serialPlatform'];
         unlockIds.forEach(id => document.getElementById(id).classList.remove('locked-field'));
-        
         document.querySelectorAll('input[name="typeCheck"]').forEach(cb => cb.disabled = false);
     }
 
@@ -546,6 +551,13 @@
         document.getElementById('updateBtn').style.display = 'none'; document.getElementById('updateBtn').innerText = "更新此版本資訊";
         document.getElementById('cancelBtn').style.display = 'none'; document.getElementById('multiVersionBtn').style.display = 'block';
         document.getElementById('syncUnlockBtn').style.display = 'none'; editingTarget = null; isSyncMode = false;
+    }
+
+    function toggleReview(btn) {
+        const content = btn.nextElementSibling;
+        const isHidden = content.style.display === 'none' || content.style.display === '';
+        content.style.display = isHidden ? 'block' : 'none';
+        btn.innerText = isHidden ? '🔼 收起心得' : '📝 查看心得';
     }
 
     function updateDatalists() {
@@ -593,7 +605,7 @@
                 return subCats.includes(secondFilter) || tags.includes(secondFilter);
             });
         }
-        if (searchTerm) filtered = filtered.filter(b => b.title.toLowerCase().includes(searchTerm) || b.author.toLowerCase().includes(searchTerm) || b.notes.toLowerCase().includes(searchTerm));
+        if (searchTerm) filtered = filtered.filter(b => b.title.toLowerCase().includes(searchTerm) || b.author.toLowerCase().includes(searchTerm) || b.notes.toLowerCase().includes(searchTerm) || (b.review && b.review.toLowerCase().includes(searchTerm)));
         const groups = []; filtered.forEach(b => { const k = b.title; let g = groups.find(x => x.key === k); if (!g) { g = { key: k, books: [] }; groups.push(g); } g.books.push(b); });
         currentFilteredGroups = groups;
         document.getElementById('contentSection').style.display = 'block';
@@ -624,7 +636,6 @@
                 let natDisplay = book.nationality && book.nationality.trim() !== "" ? ` (${book.nationality})` : "";
                 let roleDisplay = book.authorRole ? ` [${book.authorRole.replace(',', '/')}]` : "";
                 const authorDisplay = `${book.author}${roleDisplay}${natDisplay}`;
-                
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 const versionHeader = group.books.length > 1 ? `<div class="pill-multi-version">版本 ${idx+1}</div>` : '';
                 
@@ -673,7 +684,20 @@
                     }
                     book.tags.forEach(t => { tagHtml += `<span class="${getPillClass(t, 'sub')}" onclick="setFilter('小標籤','${t}')">${t}</span>`; });
                     if(book.relationId) { tagHtml += `<span class="${getPillClass(book.relationId, 'relation')}" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>`; }
-                    groupHtml += `<td data-label="標籤">${tagHtml}</td><td data-label="備註" class="notes-column"><div class="notes-box">${book.notes || '-'}</div></td>`;
+                    
+                    // 分開顯示備註與心得
+                    let notesHtml = `<div class="notes-box">${book.notes || '-'}</div>`;
+                    let reviewHtml = '';
+                    if(book.review && book.review.trim() !== "") {
+                        reviewHtml = `
+                            <div>
+                                <button class="review-toggle-btn" onclick="toggleReview(this)">📝 查看心得</button>
+                                <div class="review-content">${book.review}</div>
+                            </div>
+                        `;
+                    }
+
+                    groupHtml += `<td data-label="標籤">${tagHtml}</td><td data-label="備註/心得" class="notes-column">${notesHtml}${reviewHtml}</td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
                 groupHtml += `</tr>`;
             });
