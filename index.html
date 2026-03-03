@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V17.8</title>
+    <title>📚 ㄎㄇ的購書紀錄 V17.9</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -52,8 +52,9 @@
         .btn-sync-unlock { background-color: #17a2b8; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-bottom: 10px; display: none; }
 
         .filter-zone { text-align: center; margin-bottom: 20px; }
-        .rating-filter-container { margin: 15px 0; display: flex; justify-content: center; align-items: center; gap: 10px; }
-        .rating-filter-select { width: auto; min-width: 200px; padding: 8px 15px; border-radius: 20px; border: 1px solid #007bff; font-weight: bold; color: #007bff; cursor: pointer; background: white; }
+        .rating-filter-container { margin: 10px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        /* 統一選單樣式 */
+        .universal-filter-select { width: auto; min-width: 280px; padding: 8px 15px; border-radius: 20px; border: 2px solid #000; font-weight: bold; color: #007bff; cursor: pointer; background: white; text-align: center; font-size: 16px; }
 
         .bottom-zone { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; text-align: center; }
         .btn-home { background: #007bff; color: white; padding: 12px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,123,255,0.2); transition: 0.2s; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
@@ -143,7 +144,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V17.8</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V17.9</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -273,7 +274,11 @@
     <div class="filter-zone">
         <div id="categoryPanel" class="category-container"></div>
         <div class="rating-filter-container">
-            <select id="ratingFilter" class="rating-filter-select" onchange="applyFilters(true)">
+            <select id="locationFilter" class="universal-filter-select" onchange="applyFilters(true)">
+                <option value="">📍 依書籍地點篩選 (全部)</option>
+            </select>
+            
+            <select id="ratingFilter" class="universal-filter-select" onchange="applyFilters(true)">
                 <option value="">⭐ 依星數篩選 (全部)</option>
                 <option value="5">⭐⭐⭐⭐⭐ (5星)</option>
                 <option value="4">⭐⭐⭐⭐ (4星)</option>
@@ -363,7 +368,7 @@
                     buyStatus: row[0], title: row[1], author: row[2], language: row[3], 
                     bookCategory: row[4], subCategory: row[5],
                     format: row[6] ? row[6].split(',').map(s=>s.trim()) : [],
-                    ePlatform: row[7], 
+                    ePlatform: row[7] || '', 
                     volume: volStr, 
                     volumeUnit: unit,
                     hasPrologue: hasPrologue,
@@ -378,9 +383,26 @@
                     review: row[23] || ''
                 };
             });
-            updateDatalists(); updateCategoryButtons(); updateStats();
+            updateDatalists(); updateCategoryButtons(); updateStats(); updateLocationFilter();
         } catch (e) { console.error(e); }
         document.getElementById('loading').style.display='none';
+    }
+
+    // V17.9 新增：動態更新地點篩選器清單
+    function updateLocationFilter() {
+        const filter = document.getElementById('locationFilter');
+        const locations = new Set();
+        allBooks.forEach(b => {
+            if(b.ePlatform) {
+                b.ePlatform.split(/[，,]/).forEach(loc => locations.add(loc.trim()));
+            }
+        });
+        const sortedLocs = Array.from(locations).sort();
+        let html = '<option value="">📍 依書籍地點篩選 (全部)</option>';
+        sortedLocs.forEach(loc => {
+            html += `<option value="${loc}">${loc}</option>`;
+        });
+        filter.innerHTML = html;
     }
 
     async function checkAndSave(mode) {
@@ -586,9 +608,15 @@
     function applyFilters(isManual = true) {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const starTerm = document.getElementById('ratingFilter').value;
+        const locationTerm = document.getElementById('locationFilter').value; // V17.9 新增
+        
         let filtered = allBooks;
-        if (!currentFilter.key && !searchTerm && !starTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
+        if (!currentFilter.key && !searchTerm && !starTerm && !locationTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
+        
         if (starTerm) filtered = filtered.filter(b => b.rating.toString() === starTerm);
+        // V17.9 新增：地點篩選邏輯
+        if (locationTerm) filtered = filtered.filter(b => b.ePlatform.split(/[，,]/).map(s=>s.trim()).includes(locationTerm));
+        
         if (currentFilter.key === '類型') filtered = filtered.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
         if (currentFilter.key === '作者') filtered = filtered.filter(b => b.author === currentFilter.value);
         if (currentFilter.key === '位置') filtered = filtered.filter(b => b.ePlatform.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
@@ -606,11 +634,13 @@
             });
         }
         if (searchTerm) filtered = filtered.filter(b => b.title.toLowerCase().includes(searchTerm) || b.author.toLowerCase().includes(searchTerm) || b.notes.toLowerCase().includes(searchTerm) || (b.review && b.review.toLowerCase().includes(searchTerm)));
+        
         const groups = []; filtered.forEach(b => { const k = b.title; let g = groups.find(x => x.key === k); if (!g) { g = { key: k, books: [] }; groups.push(g); } g.books.push(b); });
         currentFilteredGroups = groups;
         document.getElementById('contentSection').style.display = 'block';
         renderTable(); updateCategoryButtons(); updateSubFilterButtons(); updateStats(); 
-        if (isManual && (starTerm || currentFilter.key || secondFilter)) {
+        
+        if (isManual && (starTerm || locationTerm || currentFilter.key || secondFilter)) {
             setTimeout(() => {
                 const target = document.getElementById('contentSection');
                 if(target) window.scrollTo({ top: target.offsetTop - 50, behavior: 'smooth' });
@@ -685,7 +715,6 @@
                     book.tags.forEach(t => { tagHtml += `<span class="${getPillClass(t, 'sub')}" onclick="setFilter('小標籤','${t}')">${t}</span>`; });
                     if(book.relationId) { tagHtml += `<span class="${getPillClass(book.relationId, 'relation')}" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>`; }
                     
-                    // 分開顯示備註與心得
                     let notesHtml = `<div class="notes-box">${book.notes || '-'}</div>`;
                     let reviewHtml = '';
                     if(book.review && book.review.trim() !== "") {
@@ -706,8 +735,8 @@
         renderPagination();
     }
 
-    function clearFilter() { currentFilter = { key: null, value: null }; secondFilter = null; document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('contentSection').style.display = 'none'; updateCategoryButtons(); updateSubFilterButtons(); updateStats(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    function setFilter(key, value) { if (key === '作者') { document.getElementById('searchInput').value = value; applyFilters(true); return; } if (key === 'SHOW_ALL') { document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; currentFilter = { key: null, value: null }; secondFilter = null; applyFilters(true); return; } currentFilter = { key, value }; secondFilter = null; currentPage = 1; applyFilters(true); }
+    function clearFilter() { currentFilter = { key: null, value: null }; secondFilter = null; document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('locationFilter').value = ""; document.getElementById('contentSection').style.display = 'none'; updateCategoryButtons(); updateSubFilterButtons(); updateStats(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function setFilter(key, value) { if (key === '作者') { document.getElementById('searchInput').value = value; applyFilters(true); return; } if (key === 'SHOW_ALL') { document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('locationFilter').value = ""; currentFilter = { key: null, value: null }; secondFilter = null; applyFilters(true); return; } currentFilter = { key, value }; secondFilter = null; currentPage = 1; applyFilters(true); }
     function updateCategoryButtons() { const p = document.getElementById('categoryPanel'); const catsSet = new Set(); allBooks.forEach(b => b.bookCategory.split(/[，,]/).forEach(c => catsSet.add(c.trim()))); const cats = Array.from(catsSet).sort(); p.innerHTML = `<button class="cat-btn ${!currentFilter.key ? 'active' : ''}" onclick="setFilter('SHOW_ALL', null)">📂 顯示全部</button>`; cats.forEach(c => { p.innerHTML += `<button class="cat-btn ${currentFilter.value === c ? 'active' : ''}" onclick="setFilter('類型','${c}')">${c}</button>`; }); }
     function updateSubFilterButtons() { const panel = document.getElementById('subFilterPanel'); if (currentFilter.key !== '類型') { panel.style.display = 'none'; return; } let subCatsSet = new Set(), tagsSet = new Set(); allBooks.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value)).forEach(b => { if (b.subCategory) b.subCategory.split(/[，,]/).forEach(s => subCatsSet.add(s.trim())); if (b.tags) b.tags.forEach(t => tagsSet.add(t.trim())); }); if (subCatsSet.size === 0 && tagsSet.size === 0) { panel.style.display = 'none'; return; } panel.style.display = 'flex'; panel.innerHTML = ''; if(subCatsSet.size > 0) { const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = '<div class="sub-filter-label">進階篩選：書籍類別</div>'; Array.from(subCatsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); }); panel.appendChild(row); } if(tagsSet.size > 0) { const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = '<div class="sub-filter-label">進階篩選：標籤</div>'; Array.from(tagsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); }); panel.appendChild(row); } }
     function renderPagination() { const totalPages = Math.ceil(currentFilteredGroups.length / itemsPerPage); const container = document.getElementById('pagination'); container.innerHTML = ''; if (totalPages <= 1) return; for (let i = 1; i <= totalPages; i++) { const btn = document.createElement('button'); btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`; btn.onclick = () => { currentPage = i; renderTable(); window.scrollTo({ top: document.getElementById('contentSection').offsetTop - 50, behavior: 'smooth' }); }; container.appendChild(btn); } }
