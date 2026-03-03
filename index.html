@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V19.0</title>
+    <title>📚 ㄎㄇ的購書紀錄 V20.0</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -63,7 +63,6 @@
         .cat-btn { background: #fff; color: #495057; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid #6c757d; transition: 0.2s; }
         .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
         
-        /* 排序選單樣式 */
         .sort-select { padding: 8px 15px; border-radius: 20px; border: 1px solid #6f42c1; color: #6f42c1; font-weight: bold; cursor: pointer; background: white; font-size: 14px; }
 
         .sub-filter-container { display: none; flex-direction: column; gap: 15px; margin: 10px 0 20px; padding: 15px; background: #f8f9fa; border-radius: 15px; border: 1px solid #eee; }
@@ -90,16 +89,7 @@
         .alert-pill { background: #dc3545 !important; color: white !important; font-weight: bold; }
         .pill-location { background: #177245 !important; color: white !important; }
         
-        .pill-multi-version { 
-            background: #8AECFF !important; 
-            color: white !important; 
-            font-weight: normal !important; 
-            border-radius: 4px !important; 
-            padding: 2px 8px !important;
-            font-size: 11px !important;
-            margin-bottom: 5px;
-            display: inline-block;
-        }
+        .pill-multi-version { background: #8AECFF !important; color: white !important; font-weight: normal !important; border-radius: 4px !important; padding: 2px 8px !important; font-size: 11px !important; margin-bottom: 5px; display: inline-block; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; table-layout: fixed; min-width: 1000px; }
         th { background-color: #f8f9fa; color: #666; font-weight: bold; padding: 15px 10px; border-bottom: 2px solid #007bff; text-align: left; }
@@ -144,7 +134,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V19.0</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V20.0</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -175,6 +165,7 @@
                 <div class="checkbox-row">
                     <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="改編自動畫"><span>改編自動畫</span></label>
                     <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="改編自漫畫"><span>改編自漫畫</span></label>
+                    <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="改編自遊戲"><span>改編自遊戲</span></label>
                 </div>
                 <div class="checkbox-row">
                     <label class="checkbox-container"><input type="checkbox" name="typeCheck" value="改編自影劇"><span>改編自影劇</span></label>
@@ -236,6 +227,7 @@
                 <option value="3">⭐⭐⭐ (3星)</option>
                 <option value="2">⭐⭐ (2星)</option>
                 <option value="1">⭐ (1星)</option>
+                <option value="待看">⏳ 待看 (未評分)</option>
             </select>
             <div id="discardZone" style="display:none;">
                 <label class="checkbox-container" style="color: #dc3545;">
@@ -282,6 +274,10 @@
     <div class="filter-zone">
         <div id="categoryPanel" class="category-container"></div>
         <div class="rating-filter-container">
+            <select id="relationFilter" class="universal-filter-select" onchange="applyFilters(true)">
+                <option value="">🔗 依關聯 IP 篩選 (全部)</option>
+            </select>
+
             <select id="locationFilter" class="universal-filter-select" onchange="applyFilters(true)">
                 <option value="">📍 依書籍地點篩選 (全部)</option>
             </select>
@@ -293,6 +289,7 @@
                 <option value="3">⭐⭐⭐ (3星)</option>
                 <option value="2">⭐⭐ (2星)</option>
                 <option value="1">⭐ (1星)</option>
+                <option value="待看">⏳ 待看 (未評分)</option>
             </select>
         </div>
         <div id="subFilterPanel" class="sub-filter-container"></div>
@@ -336,21 +333,19 @@
     let currentFilter = { key: null, value: null }, secondFilter = null;
     let editingTarget = null;
     let isSyncMode = false;
-    let currentSort = 'time'; // 預設排序
+    let currentSort = 'newToOld'; // 預設排序：由新到舊
 
     function handleAuthorRoleChange() {
         const roles = Array.from(document.querySelectorAll('input[name="authorRole"]:checked')).map(cb => cb.value);
         const zone = document.getElementById('adaptedAuthorZone');
-        if (roles.includes('原作者') && roles.includes('改編')) {
-            zone.style.display = 'block';
-        } else {
-            zone.style.display = 'none';
-        }
+        if (roles.includes('原作者') && roles.includes('改編')) { zone.style.display = 'block'; } 
+        else { zone.style.display = 'none'; }
     }
 
     function handleRatingChange(el) {
         const discardZone = document.getElementById('discardZone');
-        if (parseInt(el.value) <= 3) { discardZone.style.display = 'block'; } 
+        const val = el.value;
+        if (val === '待看' || parseInt(val) <= 3) { discardZone.style.display = 'block'; } 
         else { discardZone.style.display = 'none'; document.getElementById('canDiscard').checked = false; document.getElementById('willHide').checked = false; }
     }
 
@@ -358,7 +353,7 @@
         if (!text) return 'tag-pill';
         const alertKeywords = ['未', '沒', '重複', '缺', '不', '坑'];
         if (alertKeywords.some(k => text.includes(k))) return 'tag-pill alert-pill';
-        const specialTypes = ['續作', '前作', '外傳', '番外', '改編自動畫', '改編自漫畫', '改編自影劇', '改編自小說'];
+        const specialTypes = ['續作', '前作', '外傳', '番外', '改編自動畫', '改編自漫畫', '改編自遊戲', '改編自影劇', '改編自小說'];
         if (specialTypes.includes(text)) return 'tag-pill pill-special-cat';
         if (type === 'status') return 'tag-pill status-pill';
         if (type === 'main') return 'tag-pill pill-main';
@@ -381,13 +376,11 @@
                 let unit = "集", hasPrologue = false, hasExtra = false, hasPrequel = false, hasSideStory = false;
                 if(volStr.includes('回')) unit = "回(話)";
                 else if(volStr.includes('篇')) unit = "篇";
-                
                 if(volStr.includes('含序章')) hasPrologue = true;
                 if(volStr.includes('含番外冊')) hasExtra = true;
                 if(volStr.includes('含前傳')) hasPrequel = true;
                 if(volStr.includes('含外傳')) hasSideStory = true;
 
-                // 解析作者 (格式可能為: 原作者姓名 | 改編:改編者姓名)
                 let mainAuthor = row[2] || '';
                 let adaptedPart = '';
                 if(mainAuthor.includes('|')) {
@@ -397,47 +390,41 @@
                 }
 
                 return {
-                    id: index, // 用於記錄填入順序
+                    id: index, 
                     buyStatus: row[0], title: row[1], author: mainAuthor, adaptedAuthor: adaptedPart, language: row[3], 
                     bookCategory: row[4], subCategory: row[5],
                     format: row[6] ? row[6].split(',').map(s=>s.trim()) : [],
-                    ePlatform: row[7] || '', 
-                    volume: volStr, 
-                    volumeUnit: unit,
-                    hasPrologue: hasPrologue,
-                    hasExtra: hasExtra,
-                    hasPrequel: hasPrequel,
-                    hasSideStory: hasSideStory,
-                    workStatus: row[9], readProgress: row[10],
-                    tags: row[11] ? row[11].split(',').map(s=>s.trim()) : [],
-                    relationId: row[12], notes: row[13], nationality: row[14] || '',
-                    publisher: row[15] || '', serialPlatform: row[16] || '',
+                    ePlatform: row[7] || '', volume: volStr, volumeUnit: unit,
+                    hasPrologue: hasPrologue, hasExtra: hasExtra, hasPrequel: hasPrequel, hasSideStory: hasSideStory,
+                    workStatus: row[9], readProgress: row[10], tags: row[11] ? row[11].split(',').map(s=>s.trim()) : [],
+                    relationId: row[12], notes: row[13], nationality: row[14] || '', publisher: row[15] || '', serialPlatform: row[16] || '',
                     rating: row[17] || '', canDiscard: row[18] === 'TRUE' || row[18] === true, reRead: row[19] || '',
-                    isAudioDrama: row[20] === 'TRUE' || row[20] === true,
-                    willHide: row[21] === 'TRUE' || row[21] === true,
-                    authorRole: row[22] || '',
-                    review: row[23] || ''
+                    isAudioDrama: row[20] === 'TRUE' || row[20] === true, willHide: row[21] === 'TRUE' || row[21] === true,
+                    authorRole: row[22] || '', review: row[23] || ''
                 };
             });
-            updateDatalists(); updateCategoryButtons(); updateStats(); updateLocationFilter();
+            updateDatalists(); updateCategoryButtons(); updateStats(); updateFilterOptions();
         } catch (e) { console.error(e); }
         document.getElementById('loading').style.display='none';
     }
 
-    function updateLocationFilter() {
-        const filter = document.getElementById('locationFilter');
-        const locations = new Set();
+    function updateFilterOptions() {
+        const locFilter = document.getElementById('locationFilter');
+        const relFilter = document.getElementById('relationFilter');
+        const locations = new Set(), relations = new Set();
+        
         allBooks.forEach(b => {
-            if(b.ePlatform) {
-                b.ePlatform.split(/[，,]/).forEach(loc => locations.add(loc.trim()));
-            }
+            if(b.ePlatform) b.ePlatform.split(/[，,]/).forEach(loc => locations.add(loc.trim()));
+            if(b.relationId) relations.add(b.relationId.trim());
         });
-        const sortedLocs = Array.from(locations).sort();
-        let html = '<option value="">📍 依書籍地點篩選 (全部)</option>';
-        sortedLocs.forEach(loc => {
-            html += `<option value="${loc}">${loc}</option>`;
-        });
-        filter.innerHTML = html;
+
+        let locHtml = '<option value="">📍 依書籍地點篩選 (全部)</option>';
+        Array.from(locations).sort().forEach(loc => locHtml += `<option value="${loc}">${loc}</option>`);
+        locFilter.innerHTML = locHtml;
+
+        let relHtml = '<option value="">🔗 依關聯 IP 篩選 (全部)</option>';
+        Array.from(relations).sort().forEach(rel => relHtml += `<option value="${rel}">${rel}</option>`);
+        relFilter.innerHTML = relHtml;
     }
 
     async function checkAndSave(mode) {
@@ -447,66 +434,29 @@
         
         let selectedTypes = [];
         document.querySelectorAll('input[name="typeCheck"]:checked').forEach(cb => selectedTypes.push(cb.value));
-        let manualType = document.getElementById('bookCategory').value;
-        let finalCategory = [manualType, ...selectedTypes].filter(v => v.trim() !== '').join(', ');
+        let finalCategory = [document.getElementById('bookCategory').value, ...selectedTypes].filter(v => v.trim() !== '').join(', ');
 
         let selectedRoles = [];
         document.querySelectorAll('input[name="authorRole"]:checked').forEach(cb => selectedRoles.push(cb.value));
-        let finalRole = selectedRoles.join(',');
-
-        let mainAuthor = document.getElementById('author').value;
-        let adaptedName = document.getElementById('adaptedAuthor').value;
-        let finalAuthorStr = mainAuthor;
-        if(selectedRoles.includes('原作者') && selectedRoles.includes('改編') && adaptedName) {
-            finalAuthorStr = `${mainAuthor} | 改編: ${adaptedName}`;
+        let finalAuthorStr = document.getElementById('author').value;
+        if(selectedRoles.includes('原作者') && selectedRoles.includes('改編') && document.getElementById('adaptedAuthor').value) {
+            finalAuthorStr = `${finalAuthorStr} | 改編: ${document.getElementById('adaptedAuthor').value}`;
         }
 
         let volVal = document.getElementById('volume').value;
         let unit = document.getElementById('volumeUnit').value;
-        let proStr = document.getElementById('hasPrologue').checked ? "含序章" : "";
-        let extraStr = document.getElementById('hasExtra').checked ? "含番外冊" : "";
-        let prequelStr = document.getElementById('hasPrequel').checked ? "含前傳" : "";
-        let sideStr = document.getElementById('hasSideStory').checked ? "含外傳" : "";
-        let finalVolume = document.getElementById('isSingleVolume').checked ? "1(全)" : (volVal + unit + proStr + extraStr + prequelStr + sideStr);
+        let suffixes = (document.getElementById('hasPrologue').checked ? "含序章" : "") + (document.getElementById('hasExtra').checked ? "含番外冊" : "") + (document.getElementById('hasPrequel').checked ? "含前傳" : "") + (document.getElementById('hasSideStory').checked ? "含外傳" : "");
+        let finalVolume = document.getElementById('isSingleVolume').checked ? "1(全)" : (volVal + unit + suffixes);
 
         const bookData = {
-            action: 'save', isSyncMode: isSyncMode,
-            oldTitle: editingTarget ? editingTarget.title : null,
-            oldLang: editingTarget ? editingTarget.language : null,
-            oldFormat: editingTarget ? editingTarget.format.join(',') : null,
-            buyStatus: document.getElementById('buyStatus').value,
-            title: titleVal, author: finalAuthorStr,
-            nationality: document.getElementById('nationality').value,
-            language: document.getElementById('language').value,
-            bookCategory: finalCategory,
-            subCategory: document.getElementById('subCategory').value,
-            format: document.getElementById('format').value,
-            ePlatform: document.getElementById('ePlatform').value,
-            volume: finalVolume,
-            workStatus: document.getElementById('workStatus').value,
-            readProgress: document.getElementById('readProgress').value,
-            tags: document.getElementById('tags').value, relationId: document.getElementById('relationId').value,
-            notes: document.getElementById('notes').value, publisher: document.getElementById('publisher').value,
-            serialPlatform: document.getElementById('serialPlatform').value,
-            rating: document.getElementById('rating').value, canDiscard: document.getElementById('canDiscard').checked,
-            reRead: document.getElementById('reRead').value,
-            isAudioDrama: document.getElementById('isAudioDrama').checked,
-            willHide: document.getElementById('willHide').checked,
-            authorRole: finalRole,
-            review: document.getElementById('review').value
+            action: 'save', isSyncMode: isSyncMode, oldTitle: editingTarget ? editingTarget.title : null, oldLang: editingTarget ? editingTarget.language : null, oldFormat: editingTarget ? editingTarget.format.join(',') : null,
+            buyStatus: document.getElementById('buyStatus').value, title: titleVal, author: finalAuthorStr, nationality: document.getElementById('nationality').value, language: document.getElementById('language').value, bookCategory: finalCategory, subCategory: document.getElementById('subCategory').value, format: document.getElementById('format').value, ePlatform: document.getElementById('ePlatform').value, volume: finalVolume, workStatus: document.getElementById('workStatus').value, readProgress: document.getElementById('readProgress').value, tags: document.getElementById('tags').value, relationId: document.getElementById('relationId').value, notes: document.getElementById('notes').value, publisher: document.getElementById('publisher').value, serialPlatform: document.getElementById('serialPlatform').value, rating: document.getElementById('rating').value, canDiscard: document.getElementById('canDiscard').checked, reRead: document.getElementById('reRead').value, isAudioDrama: document.getElementById('isAudioDrama').checked, willHide: document.getElementById('willHide').checked, authorRole: selectedRoles.join(','), review: document.getElementById('review').value
         };
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
             alert(mode === 'update' ? "更新成功！" : "儲存成功！");
-            const previewName = titleVal;
-            resetForm(); 
-            await loadFromCloud();
-            document.getElementById('searchInput').value = previewName;
-            applyFilters(true);
-            setTimeout(() => {
-                const target = document.getElementById('contentSection');
-                if(target) window.scrollTo({ top: target.offsetTop - 50, behavior: 'smooth' });
-            }, 500);
+            resetForm(); await loadFromCloud();
+            document.getElementById('searchInput').value = titleVal; applyFilters(true);
         } catch (e) { alert("操作失敗"); }
         document.getElementById('loading').style.display='none';
     }
@@ -518,7 +468,7 @@
         
         document.querySelectorAll('input[name="typeCheck"]').forEach(cb => cb.checked = false);
         let cats = book.bookCategory.split(/[，,]/).map(s=>s.trim());
-        let specialTypes = ['續作', '前作', '外傳', '番外', '改編自動畫', '改編自漫畫', '改編自影劇', '改編自小說'];
+        let specialTypes = ['續作', '前作', '外傳', '番外', '改編自動畫', '改編自漫畫', '改編自遊戲', '改編自影劇', '改編自小說'];
         let remainingCats = cats.filter(c => {
             if(specialTypes.includes(c)) {
                 let checkbox = document.querySelector(`input[name="typeCheck"][value="${c}"]`);
@@ -528,15 +478,11 @@
             return true;
         });
 
-        document.querySelectorAll('input[name="authorRole"]').forEach(cb => {
-            cb.checked = (book.authorRole || "").split(',').includes(cb.value);
-        });
-
+        document.querySelectorAll('input[name="authorRole"]').forEach(cb => cb.checked = (book.authorRole || "").split(',').includes(cb.value));
         document.getElementById('title').value = book.title;
         document.getElementById('author').value = book.author;
         document.getElementById('adaptedAuthor').value = book.adaptedAuthor || '';
         handleAuthorRoleChange();
-
         document.getElementById('nationality').value = book.nationality;
         document.getElementById('bookCategory').value = remainingCats.join(', ');
         document.getElementById('subCategory').value = book.subCategory;
@@ -544,17 +490,13 @@
         document.getElementById('language').value = book.language;
         document.getElementById('format').value = book.format.join(', ');
         document.getElementById('ePlatform').value = book.ePlatform;
-        
-        let numericVol = parseInt(book.volume) || 1;
-        document.getElementById('volume').value = numericVol;
+        document.getElementById('volume').value = parseInt(book.volume) || 1;
         document.getElementById('volumeUnit').value = book.volumeUnit;
-        
         document.getElementById('hasPrologue').checked = book.hasPrologue;
         document.getElementById('hasExtra').checked = book.hasExtra;
         document.getElementById('hasPrequel').checked = book.hasPrequel;
         document.getElementById('hasSideStory').checked = book.hasSideStory;
         document.getElementById('isSingleVolume').checked = book.volume.toString().includes('全');
-        
         document.getElementById('workStatus').value = book.workStatus;
         document.getElementById('readProgress').value = book.readProgress;
         document.getElementById('tags').value = book.tags.join(', ');
@@ -571,14 +513,8 @@
         handleRatingChange(document.getElementById('rating'));
 
         const relatedBooks = allBooks.filter(b => b.title === book.title);
-        if (relatedBooks.length > 1) { 
-            applyVersionLock(); 
-            document.getElementById('syncUnlockBtn').style.display = 'block'; 
-        } 
-        else { 
-            document.querySelectorAll('.locked-field').forEach(el => el.classList.remove('locked-field')); 
-            document.getElementById('syncUnlockBtn').style.display = 'none'; 
-        }
+        if (relatedBooks.length > 1) { applyVersionLock(); document.getElementById('syncUnlockBtn').style.display = 'block'; } 
+        else { document.querySelectorAll('.locked-field').forEach(el => el.classList.remove('locked-field')); document.getElementById('syncUnlockBtn').style.display = 'none'; }
         document.getElementById('saveBtn').style.display = 'none';
         document.getElementById('updateBtn').style.display = 'block';
         document.getElementById('cancelBtn').style.display = 'block';
@@ -586,17 +522,12 @@
     }
 
     function applyVersionLock() {
-        const lockFields = ['title', 'nationality', 'relationId', 'workStatus', 'tags', 'rating', 'reRead', 'isAudioDrama', 'willHide', 'review'];
-        lockFields.forEach(id => document.getElementById(id).classList.add('locked-field'));
-        const unlockIds = ['author', 'bookCategory', 'publisher', 'serialPlatform'];
-        unlockIds.forEach(id => document.getElementById(id).classList.remove('locked-field'));
-        document.querySelectorAll('input[name="typeCheck"]').forEach(cb => cb.disabled = false);
+        ['title', 'nationality', 'relationId', 'workStatus', 'tags', 'rating', 'reRead', 'isAudioDrama', 'willHide', 'review'].forEach(id => document.getElementById(id).classList.add('locked-field'));
     }
 
     function unlockForSync() {
         if(!confirm("確定同步更新所有版本？")) return;
         document.querySelectorAll('.locked-field').forEach(el => el.classList.remove('locked-field'));
-        document.querySelectorAll('input[name="typeCheck"]').forEach(cb => cb.disabled = false);
         isSyncMode = true; document.getElementById('syncUnlockBtn').style.display = 'none';
         document.getElementById('updateBtn').innerText = "同步更新所有版本資訊";
     }
@@ -604,31 +535,20 @@
     function toggleMultiVersion() {
         if (!editingTarget) return; 
         applyVersionLock();
-        document.getElementById('saveBtn').style.display = 'block';
-        document.getElementById('saveBtn').innerText = "儲存為新版本";
-        document.getElementById('updateBtn').style.display = 'none';
-        document.getElementById('multiVersionBtn').style.display = 'none';
-        document.getElementById('syncUnlockBtn').style.display = 'none';
-        editingTarget = null;
+        document.getElementById('saveBtn').style.display = 'block'; document.getElementById('saveBtn').innerText = "儲存為新版本";
+        document.getElementById('updateBtn').style.display = 'none'; document.getElementById('multiVersionBtn').style.display = 'none';
+        document.getElementById('syncUnlockBtn').style.display = 'none'; editingTarget = null;
     }
 
     function resetForm() {
         document.getElementById('inputForm').querySelectorAll('input, select, textarea').forEach(el => { el.value = ''; el.classList.remove('locked-field'); el.disabled = false; });
-        document.querySelectorAll('input[name="typeCheck"]').forEach(cb => {cb.checked = false; cb.disabled = false;});
-        document.querySelectorAll('input[name="authorRole"]').forEach(cb => {cb.checked = false;});
-        document.getElementById('isSingleVolume').checked = false; document.getElementById('canDiscard').checked = false;
-        document.getElementById('willHide').checked = false; document.getElementById('isAudioDrama').checked = false; 
-        document.getElementById('hasPrologue').checked = false;
-        document.getElementById('hasExtra').checked = false;
-        document.getElementById('hasPrequel').checked = false;
-        document.getElementById('hasSideStory').checked = false;
-        document.getElementById('volumeUnit').selectedIndex = 0;
-        document.getElementById('discardZone').style.display = 'none';
-        document.getElementById('adaptedAuthorZone').style.display = 'none';
+        document.querySelectorAll('input[name="typeCheck"], input[name="authorRole"]').forEach(cb => {cb.checked = false; cb.disabled = false;});
+        document.querySelectorAll('#isSingleVolume, #canDiscard, #willHide, #isAudioDrama, #hasPrologue, #hasExtra, #hasPrequel, #hasSideStory').forEach(cb => cb.checked = false);
+        document.getElementById('volumeUnit').selectedIndex = 0; document.getElementById('discardZone').style.display = 'none'; document.getElementById('adaptedAuthorZone').style.display = 'none';
         document.getElementById('saveBtn').style.display = 'block'; document.getElementById('saveBtn').innerText = "儲存書單至雲端";
-        document.getElementById('updateBtn').style.display = 'none'; document.getElementById('updateBtn').innerText = "更新此版本資訊";
-        document.getElementById('cancelBtn').style.display = 'none'; document.getElementById('multiVersionBtn').style.display = 'block';
-        document.getElementById('syncUnlockBtn').style.display = 'none'; editingTarget = null; isSyncMode = false;
+        document.getElementById('updateBtn').style.display = 'none'; document.getElementById('cancelBtn').style.display = 'none';
+        document.getElementById('multiVersionBtn').style.display = 'block'; document.getElementById('syncUnlockBtn').style.display = 'none';
+        editingTarget = null; isSyncMode = false;
     }
 
     function toggleReview(btn) {
@@ -646,48 +566,37 @@
                 let val = b[key];
                 if (Array.isArray(val)) { val.forEach(v => set.add(v.trim())); } 
                 else if (typeof val === 'string' && val.trim() !== '') {
-                    val.split(/[，,]/).forEach(v => { const trimmed = v.trim(); if (trimmed) set.add(trimmed); });
+                    val.split(/[，,]/).forEach(v => { if (v.trim()) set.add(v.trim()); });
                 }
             });
             return [...set].sort();
         };
-        const fill = (id, list) => { const el = document.getElementById(id); if (el) el.innerHTML = list.map(v => `<option value="${v}">`).join(''); };
-        fill('authorList', getU('author')); fill('natList', getU('nationality')); 
-        fill('catList', getSplitU('bookCategory')); fill('subCatList', getSplitU('subCategory')); 
-        fill('langList', getU('language')); fill('formatList', getSplitU('format')); 
-        fill('platformList', getSplitU('ePlatform'));
-        fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); 
-        fill('tagOptionList', getSplitU('tags')); fill('publisherList', getU('publisher')); 
-        fill('serialPlatformList', getSplitU('serialPlatform')); fill('relationIdList', getU('relationId'));
+        const fill = (id, list) => { document.getElementById(id).innerHTML = list.map(v => `<option value="${v}">`).join(''); };
+        fill('authorList', getU('author')); fill('natList', getU('nationality')); fill('catList', getSplitU('bookCategory')); fill('subCatList', getSplitU('subCategory')); fill('langList', getU('language')); fill('formatList', getSplitU('format')); fill('platformList', getSplitU('ePlatform')); fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); fill('tagOptionList', getSplitU('tags')); fill('publisherList', getU('publisher')); fill('serialPlatformList', getSplitU('serialPlatform')); fill('relationIdList', getU('relationId'));
     }
 
-    function changeSort(val) {
-        currentSort = val;
-        applyFilters(true);
-    }
+    function changeSort(val) { currentSort = val; applyFilters(true); }
 
     function applyFilters(isManual = true) {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const starTerm = document.getElementById('ratingFilter').value;
         const locationTerm = document.getElementById('locationFilter').value; 
+        const relationTerm = document.getElementById('relationFilter').value;
         
-        let filtered = [...allBooks]; // 複製一份進行排序
+        let filtered = [...allBooks];
         
         // 排序邏輯
-        if (currentSort === 'title') {
-            filtered.sort((a, b) => a.title.localeCompare(b.title, 'zh-TW'));
-        } else if (currentSort === 'author') {
-            filtered.sort((a, b) => a.author.localeCompare(b.author, 'zh-TW'));
-        } else if (currentSort === 'series') {
-            filtered.sort((a, b) => (a.relationId || "").localeCompare((b.relationId || ""), 'zh-TW'));
-        } else {
-            filtered.sort((a, b) => a.id - b.id); // 填入時間排序
-        }
+        if (currentSort === 'title') { filtered.sort((a, b) => a.title.localeCompare(b.title, 'zh-TW')); } 
+        else if (currentSort === 'author') { filtered.sort((a, b) => a.author.localeCompare(b.author, 'zh-TW')); } 
+        else if (currentSort === 'series') { filtered.sort((a, b) => (a.relationId || "").localeCompare((b.relationId || ""), 'zh-TW')); } 
+        else if (currentSort === 'oldToNew') { filtered.sort((a, b) => a.id - b.id); } 
+        else { filtered.sort((a, b) => b.id - a.id); } // 預設 newToOld
 
-        if (!currentFilter.key && !searchTerm && !starTerm && !locationTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
+        if (!currentFilter.key && !searchTerm && !starTerm && !locationTerm && !relationTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
         
         if (starTerm) filtered = filtered.filter(b => b.rating.toString() === starTerm);
         if (locationTerm) filtered = filtered.filter(b => b.ePlatform.split(/[，,]/).map(s=>s.trim()).includes(locationTerm));
+        if (relationTerm) filtered = filtered.filter(b => b.relationId === relationTerm);
         
         if (currentFilter.key === '類型') filtered = filtered.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
         if (currentFilter.key === '作者') filtered = filtered.filter(b => b.author === currentFilter.value);
@@ -730,40 +639,20 @@
                 const isFirst = idx === 0;
                 let natDisplay = book.nationality && book.nationality.trim() !== "" ? ` (${book.nationality})` : "";
                 let roleDisplay = book.authorRole ? ` [${book.authorRole.replace(',', '/')}]` : "";
-                
                 let mainAuth = book.author;
                 let adaptedInfo = book.adaptedAuthor ? `<br><small style="color:#6c757d;">改編: ${book.adaptedAuthor}</small>` : "";
                 const authorDisplay = `${mainAuth}${roleDisplay}${natDisplay}${adaptedInfo}`;
-                
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 const versionHeader = group.books.length > 1 ? `<div class="pill-multi-version">版本 ${idx+1}</div>` : '';
                 
-                let volText = "";
-                if(book.volume.toString().includes('全')) { volText = '全一集'; } 
-                else {
-                    let num = parseInt(book.volume) || 0;
-                    let unit = book.volumeUnit || "集";
-                    let suffixes = [];
-                    if(book.hasPrologue) suffixes.push("含序章");
-                    if(book.hasExtra) suffixes.push("含番外冊");
-                    if(book.hasPrequel) suffixes.push("含前傳");
-                    if(book.hasSideStory) suffixes.push("含外傳");
-                    
-                    let displayNum = book.hasPrologue ? (num + 1) : num;
-                    volText = `共 ${displayNum} ${unit.replace('(話)','')}${suffixes.join('')}`;
-                }
-
-                const alertKeywords = ['坑', '未', '沒', '不'];
-                const workStatusStyle = alertKeywords.some(k => book.workStatus.includes(k)) ? 'color:#dc3545; font-weight:bold;' : '';
+                let volText = book.volume.toString().includes('全') ? '全一集' : `共 ${(book.hasPrologue ? (parseInt(book.volume)||0)+1 : parseInt(book.volume)||0)} ${book.volumeUnit.replace('(話)','')}${ (book.hasPrologue?"含序章":"")+(book.hasExtra?"含番外冊":"")+(book.hasPrequel?"含前傳":"")+(book.hasSideStory?"含外傳":"") }`;
+                const workStatusStyle = ['坑', '未', '沒', '不'].some(k => book.workStatus.includes(k)) ? 'color:#dc3545; font-weight:bold;' : '';
                 const buyStatusHtml = `<div style="margin-bottom:5px;">${volText} (<span style="${workStatusStyle}">${book.workStatus}</span>)</div><span class="${getPillClass(book.buyStatus, 'status')}" onclick="setFilter('購買狀態','${book.buyStatus}')">${book.buyStatus}</span>`;
 
-                let ratingStars = "⭐".repeat(parseInt(book.rating) || 0);
-                let reReadText = book.reRead;
-                if(!reReadText || reReadText === '未設定' || reReadText.trim() === '') {
-                    reReadText = `<span style="color:#FFAAD5; font-weight:bold;">待補</span>`;
-                } else { reReadText = `(${reReadText})`; }
-
-                let evalDisplay = `<div style="margin-bottom:5px;">${ratingStars}</div><div>${reReadText}</div>`;
+                let evalDisplay = "";
+                if(book.rating === "待看") { evalDisplay = `<span style="color:#6f42c1; font-weight:bold;">⏳ 待看</span>`; }
+                else { evalDisplay = `<div>${"⭐".repeat(parseInt(book.rating) || 0)}</div>`; }
+                evalDisplay += `<div>${(!book.reRead || book.reRead.trim()==='') ? '<span style="color:#FFAAD5; font-weight:bold;">待補</span>' : '('+book.reRead+')'}</div>`;
                 if (book.canDiscard) evalDisplay += `<div style="color:#dc3545; font-size:11px; font-weight:bold; margin-top:5px;">【可賣掉/丟掉】</div>`;
                 if (book.willHide) evalDisplay += `<div style="color:#dc3545; font-size:11px; font-weight:bold; margin-top:2px;">【想隱藏】</div>`;
 
@@ -775,32 +664,12 @@
                 if (isFirst) {
                     let tagHtml = '';
                     if(book.publisher) tagHtml += `<span class="${getPillClass(book.publisher, 'publisher')}" onclick="setFilter('出版社','${book.publisher}')">${book.publisher}</span>`;
-                    if(book.serialPlatform) {
-                        book.serialPlatform.split(/[，,]/).forEach(sp => {
-                            const pName = sp.trim();
-                            const pClass = getPillClass(pName, book.isAudioDrama ? 'drama' : 'serial');
-                            tagHtml += `<span class="${pClass}" onclick="setFilter('連載平台','${pName}')">${pName}</span>`;
-                        });
-                    }
-                    book.bookCategory.split(/[，,]/).forEach(c => { tagHtml += `<span class="${getPillClass(c.trim(), 'main')}" onclick="setFilter('類型','${c.trim()}')">${c.trim()}</span>`; });
-                    if(book.subCategory) {
-                        book.subCategory.split(/[，,]/).forEach(s => { tagHtml += `<span class="${getPillClass(s.trim(), 'category')}" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`; });
-                    }
-                    book.tags.forEach(t => { tagHtml += `<span class="${getPillClass(t, 'sub')}" onclick="setFilter('小標籤','${t}')">${t}</span>`; });
-                    if(book.relationId) { tagHtml += `<span class="${getPillClass(book.relationId, 'relation')}" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>`; }
-                    
-                    let notesHtml = `<div class="notes-box">${book.notes || '-'}</div>`;
-                    let reviewHtml = '';
-                    if(book.review && book.review.trim() !== "") {
-                        reviewHtml = `
-                            <div>
-                                <button class="review-toggle-btn" onclick="toggleReview(this)">📝 查看心得</button>
-                                <div class="review-content">${book.review}</div>
-                            </div>
-                        `;
-                    }
-
-                    groupHtml += `<td data-label="標籤">${tagHtml}</td><td data-label="備註/心得" class="notes-column">${notesHtml}${reviewHtml}</td>`;
+                    if(book.serialPlatform) book.serialPlatform.split(/[，,]/).forEach(sp => tagHtml += `<span class="${getPillClass(sp.trim(), book.isAudioDrama ? 'drama' : 'serial')}" onclick="setFilter('連載平台','${sp.trim()}')">${sp.trim()}</span>`);
+                    book.bookCategory.split(/[，,]/).forEach(c => tagHtml += `<span class="${getPillClass(c.trim(), 'main')}" onclick="setFilter('類型','${c.trim()}')">${c.trim()}</span>`);
+                    if(book.subCategory) book.subCategory.split(/[，,]/).forEach(s => tagHtml += `<span class="${getPillClass(s.trim(), 'category')}" onclick="setFilter('小標籤','${s.trim()}')">${s.trim()}</span>`);
+                    book.tags.forEach(t => tagHtml += `<span class="${getPillClass(t, 'sub')}" onclick="setFilter('小標籤','${t}')">${t}</span>`);
+                    if(book.relationId) tagHtml += `<span class="${getPillClass(book.relationId, 'relation')}" onclick="setFilter('關聯IP','${book.relationId}')">${book.relationId}</span>`;
+                    groupHtml += `<td data-label="標籤">${tagHtml}</td><td data-label="備註/心得" class="notes-column"><div class="notes-box">${book.notes || '-'}</div>${book.review ? '<div><button class="review-toggle-btn" onclick="toggleReview(this)">📝 查看心得</button><div class="review-content">'+book.review+'</div></div>' : ''}</td>`;
                 } else { groupHtml += `<td class="pc-only"></td><td class="pc-only"></td>`; }
                 groupHtml += `</tr>`;
             });
@@ -809,43 +678,52 @@
         renderPagination();
     }
 
-    function clearFilter() { currentFilter = { key: null, value: null }; secondFilter = null; document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('locationFilter').value = ""; document.getElementById('contentSection').style.display = 'none'; updateCategoryButtons(); updateSubFilterButtons(); updateStats(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    function setFilter(key, value) { if (key === '作者') { document.getElementById('searchInput').value = value; applyFilters(true); return; } if (key === 'SHOW_ALL') { document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('locationFilter').value = ""; currentFilter = { key: null, value: null }; secondFilter = null; applyFilters(true); return; } currentFilter = { key, value }; secondFilter = null; currentPage = 1; applyFilters(true); }
+    function clearFilter() { currentFilter = { key: null, value: null }; secondFilter = null; document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('locationFilter').value = ""; document.getElementById('relationFilter').value = ""; document.getElementById('contentSection').style.display = 'none'; updateCategoryButtons(); updateSubFilterButtons(); updateStats(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function setFilter(key, value) { if (key === '作者') { document.getElementById('searchInput').value = value; applyFilters(true); return; } if (key === 'SHOW_ALL') { clearFilter(); applyFilters(true); return; } currentFilter = { key, value }; secondFilter = null; currentPage = 1; applyFilters(true); }
     
     function updateCategoryButtons() { 
-        const p = document.getElementById('categoryPanel'); 
-        const catsSet = new Set(); 
-        allBooks.forEach(b => b.bookCategory.split(/[，,]/).forEach(c => catsSet.add(c.trim()))); 
-        const cats = Array.from(catsSet).sort(); 
-        
-        let html = `
-            <button class="cat-btn ${!currentFilter.key ? 'active' : ''}" onclick="setFilter('SHOW_ALL', null)">📂 顯示全部</button>
+        const catsSet = new Set(); allBooks.forEach(b => b.bookCategory.split(/[，,]/).forEach(c => catsSet.add(c.trim()))); 
+        let html = `<button class="cat-btn ${!currentFilter.key ? 'active' : ''}" onclick="setFilter('SHOW_ALL', null)">📂 顯示全部</button>
             <select class="sort-select" onchange="changeSort(this.value)">
-                <option value="time" ${currentSort === 'time' ? 'selected' : ''}>⏳ 按時間排序</option>
+                <option value="newToOld" ${currentSort === 'newToOld' ? 'selected' : ''}>⏳ 時間：由新到舊</option>
+                <option value="oldToNew" ${currentSort === 'oldToNew' ? 'selected' : ''}>⏳ 時間：由舊到新</option>
                 <option value="title" ${currentSort === 'title' ? 'selected' : ''}>🔤 按書名排序</option>
                 <option value="author" ${currentSort === 'author' ? 'selected' : ''}>👤 按作者排序</option>
                 <option value="series" ${currentSort === 'series' ? 'selected' : ''}>🔗 按系列(IP)排序</option>
-            </select>
-        `;
-        
-        cats.forEach(c => { 
-            html += `<button class="cat-btn ${currentFilter.value === c ? 'active' : ''}" onclick="setFilter('類型','${c}')">${c}</button>`; 
-        }); 
-        p.innerHTML = html;
+            </select>`;
+        Array.from(catsSet).sort().forEach(c => html += `<button class="cat-btn ${currentFilter.value === c ? 'active' : ''}" onclick="setFilter('類型','${c}')">${c}</button>`); 
+        document.getElementById('categoryPanel').innerHTML = html;
     }
 
-    function updateSubFilterButtons() { const panel = document.getElementById('subFilterPanel'); if (currentFilter.key !== '類型') { panel.style.display = 'none'; return; } let subCatsSet = new Set(), tagsSet = new Set(); allBooks.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value)).forEach(b => { if (b.subCategory) b.subCategory.split(/[，,]/).forEach(s => subCatsSet.add(s.trim())); if (b.tags) b.tags.forEach(t => tagsSet.add(t.trim())); }); if (subCatsSet.size === 0 && tagsSet.size === 0) { panel.style.display = 'none'; return; } panel.style.display = 'flex'; panel.innerHTML = ''; if(subCatsSet.size > 0) { const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = '<div class="sub-filter-label">進階篩選：書籍類別</div>'; Array.from(subCatsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); }); panel.appendChild(row); } if(tagsSet.size > 0) { const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = '<div class="sub-filter-label">進階篩選：標籤</div>'; Array.from(tagsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); }); panel.appendChild(row); } }
-    function renderPagination() { const totalPages = Math.ceil(currentFilteredGroups.length / itemsPerPage); const container = document.getElementById('pagination'); container.innerHTML = ''; if (totalPages <= 1) return; for (let i = 1; i <= totalPages; i++) { const btn = document.createElement('button'); btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`; btn.onclick = () => { currentPage = i; renderTable(); window.scrollTo({ top: document.getElementById('contentSection').offsetTop - 50, behavior: 'smooth' }); }; container.appendChild(btn); } }
+    function updateSubFilterButtons() { 
+        const panel = document.getElementById('subFilterPanel'); if (currentFilter.key !== '類型') { panel.style.display = 'none'; return; } 
+        let subCatsSet = new Set(), tagsSet = new Set(); 
+        allBooks.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value)).forEach(b => { if (b.subCategory) b.subCategory.split(/[，,]/).forEach(s => subCatsSet.add(s.trim())); if (b.tags) b.tags.forEach(t => tagsSet.add(t.trim())); }); 
+        if (subCatsSet.size === 0 && tagsSet.size === 0) { panel.style.display = 'none'; return; } 
+        panel.style.display = 'flex'; panel.innerHTML = '';
+        [ {title:'進階篩選：書籍類別', data:subCatsSet}, {title:'進階篩選：標籤', data:tagsSet} ].forEach(group => {
+            if(group.data.size > 0) {
+                const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = `<div class="sub-filter-label">${group.title}</div>`;
+                Array.from(group.data).sort().forEach(t => {
+                    const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t;
+                    btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn);
+                });
+                panel.appendChild(row);
+            }
+        });
+    }
+
+    function renderPagination() { 
+        const totalPages = Math.ceil(currentFilteredGroups.length / itemsPerPage); const container = document.getElementById('pagination'); container.innerHTML = ''; if (totalPages <= 1) return; 
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button'); btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = () => { currentPage = i; renderTable(); window.scrollTo({ top: document.getElementById('contentSection').offsetTop - 50, behavior: 'smooth' }); }; container.appendChild(btn);
+        }
+    }
     
     function handleSingleVolume(cb) { 
-        const v = document.getElementById('volume'); 
-        const u = document.getElementById('volumeUnit'); 
-        const p = document.getElementById('hasPrologue');
-        const e = document.getElementById('hasExtra');
-        const pq = document.getElementById('hasPrequel');
-        const ss = document.getElementById('hasSideStory');
-        v.disabled = cb.checked; u.disabled = cb.checked; p.disabled = cb.checked; e.disabled = cb.checked; pq.disabled = cb.checked; ss.disabled = cb.checked;
-        if (cb.checked) v.value = 1; 
+        ['volume', 'volumeUnit', 'hasPrologue', 'hasExtra', 'hasPrequel', 'hasSideStory'].forEach(id => document.getElementById(id).disabled = cb.checked);
+        if (cb.checked) document.getElementById('volume').value = 1; 
     }
     
     async function deleteBook(t, l, f) { if (!confirm(`確定刪除？`)) return; document.getElementById('loading').style.display='flex'; try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', title: t, language: l, format: f }) }); await loadFromCloud(); } catch (e) { alert("刪除失敗"); } document.getElementById('loading').style.display='none'; }
