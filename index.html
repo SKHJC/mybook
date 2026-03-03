@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V18.0</title>
+    <title>📚 ㄎㄇ的購書紀錄 V19.0</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -59,9 +59,12 @@
         .btn-home { background: #007bff; color: white; padding: 12px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,123,255,0.2); transition: 0.2s; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
         .btn-home:hover { background: #0056b3; box-shadow: 0 6px 15px rgba(0,123,255,0.3); transform: translateY(-2px); }
 
-        .category-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 10px; }
+        .category-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 10px; align-items: center; }
         .cat-btn { background: #fff; color: #495057; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid #6c757d; transition: 0.2s; }
         .cat-btn.active { background: #007bff; color: #fff; border-color: #007bff; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+        
+        /* 排序選單樣式 */
+        .sort-select { padding: 8px 15px; border-radius: 20px; border: 1px solid #6f42c1; color: #6f42c1; font-weight: bold; cursor: pointer; background: white; font-size: 14px; }
 
         .sub-filter-container { display: none; flex-direction: column; gap: 15px; margin: 10px 0 20px; padding: 15px; background: #f8f9fa; border-radius: 15px; border: 1px solid #eee; }
         .sub-filter-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
@@ -141,7 +144,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V18.0</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V19.0</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -149,8 +152,12 @@
             <label>作者 *</label>
             <input type="text" id="author" list="authorList" placeholder="例：J.K. 羅琳">
             <div class="checkbox-row">
-                <label class="checkbox-container"><input type="checkbox" name="authorRole" value="原作者"><span>原作者</span></label>
-                <label class="checkbox-container"><input type="checkbox" name="authorRole" value="改編"><span>改編</span></label>
+                <label class="checkbox-container"><input type="checkbox" name="authorRole" value="原作者" onchange="handleAuthorRoleChange()"><span>原作者</span></label>
+                <label class="checkbox-container"><input type="checkbox" name="authorRole" value="改編" onchange="handleAuthorRoleChange()"><span>改編</span></label>
+            </div>
+            <div id="adaptedAuthorZone" style="display:none; margin-top:10px;">
+                <label>改編作者</label>
+                <input type="text" id="adaptedAuthor" list="authorList" placeholder="請填寫改編者姓名">
             </div>
         </div>
         <div><label>作者國籍 *</label><input type="text" id="nationality" list="natList" placeholder="例：英國"></div>
@@ -205,6 +212,7 @@
                 <label class="checkbox-container"><input type="checkbox" id="hasPrologue"><span>含序章</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="hasExtra"><span>含番外冊</span></label>
                 <label class="checkbox-container"><input type="checkbox" id="hasPrequel"><span>含前傳</span></label>
+                <label class="checkbox-container"><input type="checkbox" id="hasSideStory"><span>含外傳</span></label>
             </div>
         </div>
         <div><label>作品狀態 *</label><input type="text" id="workStatus" list="workStatusList" placeholder="例：正文完結"></div>
@@ -328,6 +336,17 @@
     let currentFilter = { key: null, value: null }, secondFilter = null;
     let editingTarget = null;
     let isSyncMode = false;
+    let currentSort = 'time'; // 預設排序
+
+    function handleAuthorRoleChange() {
+        const roles = Array.from(document.querySelectorAll('input[name="authorRole"]:checked')).map(cb => cb.value);
+        const zone = document.getElementById('adaptedAuthorZone');
+        if (roles.includes('原作者') && roles.includes('改編')) {
+            zone.style.display = 'block';
+        } else {
+            zone.style.display = 'none';
+        }
+    }
 
     function handleRatingChange(el) {
         const discardZone = document.getElementById('discardZone');
@@ -357,19 +376,29 @@
         try {
             const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'read' }) });
             const data = await r.json();
-            allBooks = data.map(row => {
+            allBooks = data.map((row, index) => {
                 let volStr = row[8] ? row[8].toString() : "1";
-                let unit = "集", hasPrologue = false, hasExtra = false, hasPrequel = false;
+                let unit = "集", hasPrologue = false, hasExtra = false, hasPrequel = false, hasSideStory = false;
                 if(volStr.includes('回')) unit = "回(話)";
                 else if(volStr.includes('篇')) unit = "篇";
                 
-                // V18.0 解析新增欄位
                 if(volStr.includes('含序章')) hasPrologue = true;
                 if(volStr.includes('含番外冊')) hasExtra = true;
                 if(volStr.includes('含前傳')) hasPrequel = true;
+                if(volStr.includes('含外傳')) hasSideStory = true;
+
+                // 解析作者 (格式可能為: 原作者姓名 | 改編:改編者姓名)
+                let mainAuthor = row[2] || '';
+                let adaptedPart = '';
+                if(mainAuthor.includes('|')) {
+                    const parts = mainAuthor.split('|');
+                    mainAuthor = parts[0].trim();
+                    adaptedPart = parts[1].replace('改編:', '').trim();
+                }
 
                 return {
-                    buyStatus: row[0], title: row[1], author: row[2], language: row[3], 
+                    id: index, // 用於記錄填入順序
+                    buyStatus: row[0], title: row[1], author: mainAuthor, adaptedAuthor: adaptedPart, language: row[3], 
                     bookCategory: row[4], subCategory: row[5],
                     format: row[6] ? row[6].split(',').map(s=>s.trim()) : [],
                     ePlatform: row[7] || '', 
@@ -378,6 +407,7 @@
                     hasPrologue: hasPrologue,
                     hasExtra: hasExtra,
                     hasPrequel: hasPrequel,
+                    hasSideStory: hasSideStory,
                     workStatus: row[9], readProgress: row[10],
                     tags: row[11] ? row[11].split(',').map(s=>s.trim()) : [],
                     relationId: row[12], notes: row[13], nationality: row[14] || '',
@@ -424,13 +454,20 @@
         document.querySelectorAll('input[name="authorRole"]:checked').forEach(cb => selectedRoles.push(cb.value));
         let finalRole = selectedRoles.join(',');
 
-        // V18.0 更新：組合 Volume 字串邏輯
+        let mainAuthor = document.getElementById('author').value;
+        let adaptedName = document.getElementById('adaptedAuthor').value;
+        let finalAuthorStr = mainAuthor;
+        if(selectedRoles.includes('原作者') && selectedRoles.includes('改編') && adaptedName) {
+            finalAuthorStr = `${mainAuthor} | 改編: ${adaptedName}`;
+        }
+
         let volVal = document.getElementById('volume').value;
         let unit = document.getElementById('volumeUnit').value;
         let proStr = document.getElementById('hasPrologue').checked ? "含序章" : "";
         let extraStr = document.getElementById('hasExtra').checked ? "含番外冊" : "";
         let prequelStr = document.getElementById('hasPrequel').checked ? "含前傳" : "";
-        let finalVolume = document.getElementById('isSingleVolume').checked ? "1(全)" : (volVal + unit + proStr + extraStr + prequelStr);
+        let sideStr = document.getElementById('hasSideStory').checked ? "含外傳" : "";
+        let finalVolume = document.getElementById('isSingleVolume').checked ? "1(全)" : (volVal + unit + proStr + extraStr + prequelStr + sideStr);
 
         const bookData = {
             action: 'save', isSyncMode: isSyncMode,
@@ -438,7 +475,7 @@
             oldLang: editingTarget ? editingTarget.language : null,
             oldFormat: editingTarget ? editingTarget.format.join(',') : null,
             buyStatus: document.getElementById('buyStatus').value,
-            title: titleVal, author: document.getElementById('author').value,
+            title: titleVal, author: finalAuthorStr,
             nationality: document.getElementById('nationality').value,
             language: document.getElementById('language').value,
             bookCategory: finalCategory,
@@ -497,6 +534,9 @@
 
         document.getElementById('title').value = book.title;
         document.getElementById('author').value = book.author;
+        document.getElementById('adaptedAuthor').value = book.adaptedAuthor || '';
+        handleAuthorRoleChange();
+
         document.getElementById('nationality').value = book.nationality;
         document.getElementById('bookCategory').value = remainingCats.join(', ');
         document.getElementById('subCategory').value = book.subCategory;
@@ -509,10 +549,10 @@
         document.getElementById('volume').value = numericVol;
         document.getElementById('volumeUnit').value = book.volumeUnit;
         
-        // V18.0 更新：編輯時恢復勾選狀態
         document.getElementById('hasPrologue').checked = book.hasPrologue;
         document.getElementById('hasExtra').checked = book.hasExtra;
         document.getElementById('hasPrequel').checked = book.hasPrequel;
+        document.getElementById('hasSideStory').checked = book.hasSideStory;
         document.getElementById('isSingleVolume').checked = book.volume.toString().includes('全');
         
         document.getElementById('workStatus').value = book.workStatus;
@@ -581,8 +621,10 @@
         document.getElementById('hasPrologue').checked = false;
         document.getElementById('hasExtra').checked = false;
         document.getElementById('hasPrequel').checked = false;
+        document.getElementById('hasSideStory').checked = false;
         document.getElementById('volumeUnit').selectedIndex = 0;
         document.getElementById('discardZone').style.display = 'none';
+        document.getElementById('adaptedAuthorZone').style.display = 'none';
         document.getElementById('saveBtn').style.display = 'block'; document.getElementById('saveBtn').innerText = "儲存書單至雲端";
         document.getElementById('updateBtn').style.display = 'none'; document.getElementById('updateBtn').innerText = "更新此版本資訊";
         document.getElementById('cancelBtn').style.display = 'none'; document.getElementById('multiVersionBtn').style.display = 'block';
@@ -619,12 +661,29 @@
         fill('serialPlatformList', getSplitU('serialPlatform')); fill('relationIdList', getU('relationId'));
     }
 
+    function changeSort(val) {
+        currentSort = val;
+        applyFilters(true);
+    }
+
     function applyFilters(isManual = true) {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const starTerm = document.getElementById('ratingFilter').value;
         const locationTerm = document.getElementById('locationFilter').value; 
         
-        let filtered = allBooks;
+        let filtered = [...allBooks]; // 複製一份進行排序
+        
+        // 排序邏輯
+        if (currentSort === 'title') {
+            filtered.sort((a, b) => a.title.localeCompare(b.title, 'zh-TW'));
+        } else if (currentSort === 'author') {
+            filtered.sort((a, b) => a.author.localeCompare(b.author, 'zh-TW'));
+        } else if (currentSort === 'series') {
+            filtered.sort((a, b) => (a.relationId || "").localeCompare((b.relationId || ""), 'zh-TW'));
+        } else {
+            filtered.sort((a, b) => a.id - b.id); // 填入時間排序
+        }
+
         if (!currentFilter.key && !searchTerm && !starTerm && !locationTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
         
         if (starTerm) filtered = filtered.filter(b => b.rating.toString() === starTerm);
@@ -652,13 +711,6 @@
         currentFilteredGroups = groups;
         document.getElementById('contentSection').style.display = 'block';
         renderTable(); updateCategoryButtons(); updateSubFilterButtons(); updateStats(); 
-        
-        if (isManual && (starTerm || locationTerm || currentFilter.key || secondFilter)) {
-            setTimeout(() => {
-                const target = document.getElementById('contentSection');
-                if(target) window.scrollTo({ top: target.offsetTop - 50, behavior: 'smooth' });
-            }, 100);
-        }
     }
 
     function updateStats() {
@@ -678,11 +730,14 @@
                 const isFirst = idx === 0;
                 let natDisplay = book.nationality && book.nationality.trim() !== "" ? ` (${book.nationality})` : "";
                 let roleDisplay = book.authorRole ? ` [${book.authorRole.replace(',', '/')}]` : "";
-                const authorDisplay = `${book.author}${roleDisplay}${natDisplay}`;
+                
+                let mainAuth = book.author;
+                let adaptedInfo = book.adaptedAuthor ? `<br><small style="color:#6c757d;">改編: ${book.adaptedAuthor}</small>` : "";
+                const authorDisplay = `${mainAuth}${roleDisplay}${natDisplay}${adaptedInfo}`;
+                
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 const versionHeader = group.books.length > 1 ? `<div class="pill-multi-version">版本 ${idx+1}</div>` : '';
                 
-                // V18.0 更新：表格顯示集數邏輯
                 let volText = "";
                 if(book.volume.toString().includes('全')) { volText = '全一集'; } 
                 else {
@@ -692,6 +747,7 @@
                     if(book.hasPrologue) suffixes.push("含序章");
                     if(book.hasExtra) suffixes.push("含番外冊");
                     if(book.hasPrequel) suffixes.push("含前傳");
+                    if(book.hasSideStory) suffixes.push("含外傳");
                     
                     let displayNum = book.hasPrologue ? (num + 1) : num;
                     volText = `共 ${displayNum} ${unit.replace('(話)','')}${suffixes.join('')}`;
@@ -755,18 +811,40 @@
 
     function clearFilter() { currentFilter = { key: null, value: null }; secondFilter = null; document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('locationFilter').value = ""; document.getElementById('contentSection').style.display = 'none'; updateCategoryButtons(); updateSubFilterButtons(); updateStats(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function setFilter(key, value) { if (key === '作者') { document.getElementById('searchInput').value = value; applyFilters(true); return; } if (key === 'SHOW_ALL') { document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('locationFilter').value = ""; currentFilter = { key: null, value: null }; secondFilter = null; applyFilters(true); return; } currentFilter = { key, value }; secondFilter = null; currentPage = 1; applyFilters(true); }
-    function updateCategoryButtons() { const p = document.getElementById('categoryPanel'); const catsSet = new Set(); allBooks.forEach(b => b.bookCategory.split(/[，,]/).forEach(c => catsSet.add(c.trim()))); const cats = Array.from(catsSet).sort(); p.innerHTML = `<button class="cat-btn ${!currentFilter.key ? 'active' : ''}" onclick="setFilter('SHOW_ALL', null)">📂 顯示全部</button>`; cats.forEach(c => { p.innerHTML += `<button class="cat-btn ${currentFilter.value === c ? 'active' : ''}" onclick="setFilter('類型','${c}')">${c}</button>`; }); }
+    
+    function updateCategoryButtons() { 
+        const p = document.getElementById('categoryPanel'); 
+        const catsSet = new Set(); 
+        allBooks.forEach(b => b.bookCategory.split(/[，,]/).forEach(c => catsSet.add(c.trim()))); 
+        const cats = Array.from(catsSet).sort(); 
+        
+        let html = `
+            <button class="cat-btn ${!currentFilter.key ? 'active' : ''}" onclick="setFilter('SHOW_ALL', null)">📂 顯示全部</button>
+            <select class="sort-select" onchange="changeSort(this.value)">
+                <option value="time" ${currentSort === 'time' ? 'selected' : ''}>⏳ 按時間排序</option>
+                <option value="title" ${currentSort === 'title' ? 'selected' : ''}>🔤 按書名排序</option>
+                <option value="author" ${currentSort === 'author' ? 'selected' : ''}>👤 按作者排序</option>
+                <option value="series" ${currentSort === 'series' ? 'selected' : ''}>🔗 按系列(IP)排序</option>
+            </select>
+        `;
+        
+        cats.forEach(c => { 
+            html += `<button class="cat-btn ${currentFilter.value === c ? 'active' : ''}" onclick="setFilter('類型','${c}')">${c}</button>`; 
+        }); 
+        p.innerHTML = html;
+    }
+
     function updateSubFilterButtons() { const panel = document.getElementById('subFilterPanel'); if (currentFilter.key !== '類型') { panel.style.display = 'none'; return; } let subCatsSet = new Set(), tagsSet = new Set(); allBooks.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value)).forEach(b => { if (b.subCategory) b.subCategory.split(/[，,]/).forEach(s => subCatsSet.add(s.trim())); if (b.tags) b.tags.forEach(t => tagsSet.add(t.trim())); }); if (subCatsSet.size === 0 && tagsSet.size === 0) { panel.style.display = 'none'; return; } panel.style.display = 'flex'; panel.innerHTML = ''; if(subCatsSet.size > 0) { const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = '<div class="sub-filter-label">進階篩選：書籍類別</div>'; Array.from(subCatsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); }); panel.appendChild(row); } if(tagsSet.size > 0) { const row = document.createElement('div'); row.className = 'sub-filter-row'; row.innerHTML = '<div class="sub-filter-label">進階篩選：標籤</div>'; Array.from(tagsSet).sort().forEach(t => { const btn = document.createElement('button'); btn.className = 'sub-cat-btn' + (secondFilter === t ? ' active' : ''); btn.innerText = t; btn.onclick = () => { secondFilter = (secondFilter === t) ? null : t; applyFilters(true); }; row.appendChild(btn); }); panel.appendChild(row); } }
     function renderPagination() { const totalPages = Math.ceil(currentFilteredGroups.length / itemsPerPage); const container = document.getElementById('pagination'); container.innerHTML = ''; if (totalPages <= 1) return; for (let i = 1; i <= totalPages; i++) { const btn = document.createElement('button'); btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`; btn.onclick = () => { currentPage = i; renderTable(); window.scrollTo({ top: document.getElementById('contentSection').offsetTop - 50, behavior: 'smooth' }); }; container.appendChild(btn); } }
     
-    // V18.0 更新：單本完結時禁用所有集數相關勾選框
     function handleSingleVolume(cb) { 
         const v = document.getElementById('volume'); 
         const u = document.getElementById('volumeUnit'); 
         const p = document.getElementById('hasPrologue');
         const e = document.getElementById('hasExtra');
         const pq = document.getElementById('hasPrequel');
-        v.disabled = cb.checked; u.disabled = cb.checked; p.disabled = cb.checked; e.disabled = cb.checked; pq.disabled = cb.checked;
+        const ss = document.getElementById('hasSideStory');
+        v.disabled = cb.checked; u.disabled = cb.checked; p.disabled = cb.checked; e.disabled = cb.checked; pq.disabled = cb.checked; ss.disabled = cb.checked;
         if (cb.checked) v.value = 1; 
     }
     
