@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V20.0</title>
+    <title>📚 ㄎㄇ的購書紀錄 V20.1</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -134,7 +134,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V20.0</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V20.1</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -638,10 +638,21 @@
             group.books.forEach((book, idx) => {
                 const isFirst = idx === 0;
                 let natDisplay = book.nationality && book.nationality.trim() !== "" ? ` (${book.nationality})` : "";
-                let roleDisplay = book.authorRole ? ` [${book.authorRole.replace(',', '/')}]` : "";
+                
+                // --- 作者顯示邏輯微調 (V20.1) ---
+                let roles = (book.authorRole || "").split(',');
+                let roleDisplay = "";
+                if (roles.includes('原作者') && roles.includes('改編')) {
+                    roleDisplay = ` [原作者]`; // 如果兩者都有，主作者標註為原作者
+                } else if (book.authorRole) {
+                    roleDisplay = ` [${book.authorRole.replace(',', '/')}]`;
+                }
+
                 let mainAuth = book.author;
                 let adaptedInfo = book.adaptedAuthor ? `<br><small style="color:#6c757d;">改編: ${book.adaptedAuthor}</small>` : "";
                 const authorDisplay = `${mainAuth}${roleDisplay}${natDisplay}${adaptedInfo}`;
+                // --------------------------------
+
                 const params = `'${book.title.replace(/'/g, "\\'")}', '${book.language}', '${book.format.join(',')}'`;
                 const versionHeader = group.books.length > 1 ? `<div class="pill-multi-version">版本 ${idx+1}</div>` : '';
                 
