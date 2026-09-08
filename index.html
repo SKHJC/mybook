@@ -186,7 +186,23 @@
         <div><label>內文語言 *</label><input type="text" id="language" list="langList" placeholder="例：繁體中文"></div>
         <div><label>形式 (例：實體書, 電子書) ⁂</label><input type="text" id="format" list="formatList" placeholder="可填多個"></div>
         
-        <div><label>書籍位置 (逗號隔開) ⁂</label><input type="text" id="ePlatform" list="platformList" placeholder="例：BW, 實體書"></div>
+        <div>
+            <label>書籍位置 (逗號隔開) ⁂</label>
+            <input type="text" id="ePlatform" list="platformList" placeholder="例：BW, 集集" oninput="handleEPlatformChange()">
+            <!-- 新增：集集專用詳細位置下拉選單 -->
+            <div id="jijiDetailZone" style="display: none; margin-top: 8px;">
+                <label style="color: #177245; font-size: 12px;">📍 集集詳細位置</label>
+                <select id="jijiDetailSelect" style="padding: 6px; font-size: 13px;">
+                    <option value="">請選擇詳細位置...</option>
+                    <option value="房間書架">房間書架</option>
+                    <option value="房間衣櫃">房間衣櫃</option>
+                    <option value="房間置物箱">房間置物箱</option>
+                    <option value="客廳書櫃">客廳書櫃</option>
+                    <option value="書房">書房</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+        </div>
         <div id="divVol">
             <label>目前購買集數/回數</label>
             <div style="display: flex; gap: 5px;">
@@ -345,7 +361,19 @@
     let currentFilter = { key: null, value: null }, secondFilter = null;
     let editingTarget = null;
     let isSyncMode = false;
-    let currentSort = 'newToOld'; // 預設排序：由新到舊
+    let currentSort = 'newToOld';
+
+    // 處理集集詳細位置選單的顯示與隱藏
+    function handleEPlatformChange() {
+        const val = document.getElementById('ePlatform').value;
+        const zone = document.getElementById('jijiDetailZone');
+        if (val.includes('集集')) {
+            zone.style.display = 'block';
+        } else {
+            zone.style.display = 'none';
+            document.getElementById('jijiDetailSelect').value = '';
+        }
+    }
 
     function handleAuthorRoleChange() {
         const roles = Array.from(document.querySelectorAll('input[name="authorRole"]:checked')).map(cb => cb.value);
@@ -354,7 +382,6 @@
         else { zone.style.display = 'none'; }
     }
 
-    // V20.2 更新判斷邏輯
     function handleRatingChange(el) {
         const discardZone = document.getElementById('discardZone');
         const val = el.value;
@@ -460,16 +487,30 @@
         let unit = document.getElementById('volumeUnit').value;
         let suffixes = (document.getElementById('hasPrologue').checked ? "含序章" : "") + (document.getElementById('hasExtra').checked ? "含番外冊" : "") + (document.getElementById('hasPrequel').checked ? "含前傳" : "") + (document.getElementById('hasSideStory').checked ? "含外傳" : "");
         
-        // V20.2 整合「套數」邏輯
         let finalVolume = document.getElementById('isSingleVolume').checked ? "1(全)" : (volVal + unit + suffixes);
         if(document.getElementById('isMultiSet').checked) {
             let sets = document.getElementById('setCount').value || 2;
             finalVolume += ` (共 ${sets} 套)`;
         }
 
+        // 整合「書籍位置」與「集集詳細位置」
+        let platformInput = document.getElementById('ePlatform').value;
+        let jijiDetail = document.getElementById('jijiDetailSelect').value;
+        let finalPlatform = platformInput;
+        if (platformInput.includes('集集') && jijiDetail) {
+            let parts = platformInput.split(/[，,]/).map(p => p.trim());
+            parts = parts.map(p => {
+                if (p.includes('集集')) {
+                    return `集集(${jijiDetail})`;
+                }
+                return p;
+            });
+            finalPlatform = parts.join(', ');
+        }
+
         const bookData = {
             action: 'save', isSyncMode: isSyncMode, oldTitle: editingTarget ? editingTarget.title : null, oldLang: editingTarget ? editingTarget.language : null, oldFormat: editingTarget ? editingTarget.format.join(',') : null,
-            buyStatus: document.getElementById('buyStatus').value, title: titleVal, author: finalAuthorStr, nationality: document.getElementById('nationality').value, language: document.getElementById('language').value, bookCategory: finalCategory, subCategory: document.getElementById('subCategory').value, format: document.getElementById('format').value, ePlatform: document.getElementById('ePlatform').value, volume: finalVolume, workStatus: document.getElementById('workStatus').value, readProgress: document.getElementById('readProgress').value, tags: document.getElementById('tags').value, relationId: document.getElementById('relationId').value, notes: document.getElementById('notes').value, publisher: document.getElementById('publisher').value, serialPlatform: document.getElementById('serialPlatform').value, rating: document.getElementById('rating').value, canDiscard: document.getElementById('canDiscard').checked, reRead: document.getElementById('reRead').value, isAudioDrama: document.getElementById('isAudioDrama').checked, willHide: document.getElementById('willHide').checked, authorRole: selectedRoles.join(','), review: document.getElementById('review').value
+            buyStatus: document.getElementById('buyStatus').value, title: titleVal, author: finalAuthorStr, nationality: document.getElementById('nationality').value, language: document.getElementById('language').value, bookCategory: finalCategory, subCategory: document.getElementById('subCategory').value, format: document.getElementById('format').value, ePlatform: finalPlatform, volume: finalVolume, workStatus: document.getElementById('workStatus').value, readProgress: document.getElementById('readProgress').value, tags: document.getElementById('tags').value, relationId: document.getElementById('relationId').value, notes: document.getElementById('notes').value, publisher: document.getElementById('publisher').value, serialPlatform: document.getElementById('serialPlatform').value, rating: document.getElementById('rating').value, canDiscard: document.getElementById('canDiscard').checked, reRead: document.getElementById('reRead').value, isAudioDrama: document.getElementById('isAudioDrama').checked, willHide: document.getElementById('willHide').checked, authorRole: selectedRoles.join(','), review: document.getElementById('review').value
         };
         try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
@@ -508,7 +549,19 @@
         document.getElementById('buyStatus').value = book.buyStatus;
         document.getElementById('language').value = book.language;
         document.getElementById('format').value = book.format.join(', ');
-        document.getElementById('ePlatform').value = book.ePlatform;
+        
+        // 載入書籍位置與反解集集詳細位置
+        let rawPlatform = book.ePlatform || '';
+        let matchedDetail = rawPlatform.match(/集集\(([^)]+)\)/);
+        if (matchedDetail) {
+            document.getElementById('ePlatform').value = rawPlatform.replace(/集集\([^)]+\)/, '集集');
+            document.getElementById('jijiDetailZone').style.display = 'block';
+            document.getElementById('jijiDetailSelect').value = matchedDetail[1];
+        } else {
+            document.getElementById('ePlatform').value = rawPlatform;
+            handleEPlatformChange();
+        }
+
         document.getElementById('volume').value = parseInt(book.volume) || 1;
         document.getElementById('volumeUnit').value = book.volumeUnit;
         document.getElementById('hasPrologue').checked = book.hasPrologue;
@@ -517,7 +570,6 @@
         document.getElementById('hasSideStory').checked = book.hasSideStory;
         document.getElementById('isSingleVolume').checked = book.volume.toString().includes('全');
         
-        // V20.2 編輯載入套數
         if (book.volume.toString().includes('套')) {
             document.getElementById('isMultiSet').checked = true;
             document.getElementById('multiSetZone').style.display = 'flex';
@@ -577,6 +629,8 @@
         document.querySelectorAll('#isSingleVolume, #canDiscard, #willHide, #isAudioDrama, #hasPrologue, #hasExtra, #hasPrequel, #hasSideStory, #isMultiSet').forEach(cb => cb.checked = false);
         document.getElementById('volumeUnit').selectedIndex = 0; document.getElementById('discardZone').style.display = 'none'; document.getElementById('adaptedAuthorZone').style.display = 'none';
         document.getElementById('multiSetZone').style.display = 'none';
+        document.getElementById('jijiDetailZone').style.display = 'none';
+        document.getElementById('jijiDetailSelect').value = '';
         document.getElementById('saveBtn').style.display = 'block'; document.getElementById('saveBtn').innerText = "儲存書單至雲端";
         document.getElementById('updateBtn').style.display = 'none'; document.getElementById('cancelBtn').style.display = 'none';
         document.getElementById('multiVersionBtn').style.display = 'block'; document.getElementById('syncUnlockBtn').style.display = 'none';
@@ -617,12 +671,11 @@
         
         let filtered = [...allBooks];
         
-        // 排序邏輯
         if (currentSort === 'title') { filtered.sort((a, b) => a.title.localeCompare(b.title, 'zh-TW')); } 
         else if (currentSort === 'author') { filtered.sort((a, b) => a.author.localeCompare(b.author, 'zh-TW')); } 
         else if (currentSort === 'series') { filtered.sort((a, b) => (a.relationId || "").localeCompare((b.relationId || ""), 'zh-TW')); } 
         else if (currentSort === 'oldToNew') { filtered.sort((a, b) => a.id - b.id); } 
-        else { filtered.sort((a, b) => b.id - a.id); } // 預設 newToOld
+        else { filtered.sort((a, b) => b.id - a.id); }
 
         if (!currentFilter.key && !searchTerm && !starTerm && !locationTerm && !relationTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
         
@@ -688,7 +741,6 @@
                 
                 let volRaw = book.volume.toString();
                 let volText = volRaw.includes('全') ? '全一集' : `共 ${(book.hasPrologue ? (parseInt(book.volume)||0)+1 : parseInt(book.volume)||0)} ${book.volumeUnit.replace('(話)','')}${ (book.hasPrologue?"含序章":"")+(book.hasExtra?"含番外冊":"")+(book.hasPrequel?"含前傳":"")+(book.hasSideStory?"含外傳":"") }`;
-                // V20.2 如果字串中本來就有「共 X 套」，直接顯示
                 if (volRaw.includes('套')) {
                     const setPart = volRaw.match(/\(共 \d+ 套\)/);
                     if (setPart) volText += ` ${setPart[0]}`;
@@ -779,7 +831,6 @@
         }
     }
 
-    // V20.2 新增套數處理函式
     function handleMultiSet(cb) {
         const zone = document.getElementById('multiSetZone');
         zone.style.display = cb.checked ? 'flex' : 'none';
