@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V20.5</title>
+    <title>📚 ㄎㄇ的購書紀錄 V20.6</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -134,7 +134,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V20.5</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V20.6</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -306,7 +306,7 @@
                 <option value="">🔗 依關聯 IP 篩選 (全部)</option>
             </select>
 
-            <select id="locationFilter" class="universal-filter-select" onchange="applyFilters(true)">
+            <select id="locationFilter" class="universal-filter-select" onchange="handleLocationFilterChange()">
                 <option value="">📍 依書籍地點篩選 (全部)</option>
             </select>
             
@@ -321,6 +321,10 @@
                 <option value="收藏">💎 收藏用</option>
             </select>
         </div>
+        
+        <!-- 新增：集集專用詳細位置按鈕區域 -->
+        <div id="jijiButtonsPanel" class="sub-filter-container"></div>
+
         <div id="subFilterPanel" class="sub-filter-container"></div>
     </div>
 
@@ -363,6 +367,10 @@
     let editingTarget = null;
     let isSyncMode = false;
     let currentSort = 'newToOld';
+    
+    // 全域儲存集集詳細位置選項清單與目前選取的按鈕
+    let globalJijiOptions = ['鞋櫃A-1', '鞋櫃A-2', '鞋櫃A-3', '鞋櫃B-1', '鞋櫃B-2', '鞋櫃B-3', '鞋櫃B-4'];
+    let selectedJijiDetail = null;
 
     // 處理集集詳細位置選單的顯示與隱藏
     function handleEPlatformChange() {
@@ -413,11 +421,11 @@
             const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'read' }) });
             const res = await r.json();
             
-            // 相容原版純陣列或新版含 jijiOptions 的物件
             const rawData = Array.isArray(res) ? res : (res.books || []);
             
-            // 如果後端有回傳試算表「設定」分頁的位置清單，動態替換選單內容
+            // 如果後端回傳自「設定」分頁的選項，更新全域清單與編輯選單
             if (res.jijiOptions && Array.isArray(res.jijiOptions) && res.jijiOptions.length > 0) {
+                globalJijiOptions = res.jijiOptions;
                 const sel = document.getElementById('jijiDetailSelect');
                 let optHtml = '<option value="">請選擇詳細位置...</option>';
                 res.jijiOptions.forEach(opt => {
@@ -469,7 +477,14 @@
         const locations = new Set(), relations = new Set();
         
         allBooks.forEach(b => {
-            if(b.ePlatform) b.ePlatform.split(/[，,]/).forEach(loc => locations.add(loc.trim()));
+            if(b.ePlatform) {
+                b.ePlatform.split(/[，,]/).forEach(loc => {
+                    let cleanLoc = loc.trim();
+                    // 下拉選單將「集集(...)」統一正規化成「集集」呈現
+                    if (cleanLoc.startsWith('集集')) cleanLoc = '集集';
+                    if (cleanLoc) locations.add(cleanLoc);
+                });
+            }
             if(b.relationId) relations.add(b.relationId.trim());
         });
 
@@ -480,6 +495,59 @@
         let relHtml = '<option value="">🔗 依關聯 IP 篩選 (全部)</option>';
         Array.from(relations).sort().forEach(rel => relHtml += `<option value="${rel}">${rel}</option>`);
         relFilter.innerHTML = relHtml;
+    }
+
+    // 地點下拉選單變更事件：處理「集集」展開詳細按鈕
+    function handleLocationFilterChange() {
+        const locVal = document.getElementById('locationFilter').value;
+        const btnPanel = document.getElementById('jijiButtonsPanel');
+        
+        if (locVal === '集集') {
+            selectedJijiDetail = null; // 重設詳細位置篩選
+            renderJijiButtons();
+        } else {
+            selectedJijiDetail = null;
+            btnPanel.style.display = 'none';
+            btnPanel.innerHTML = '';
+        }
+        applyFilters(true);
+    }
+
+    // 渲染集集詳細位置按鈕
+    function renderJijiButtons() {
+        const btnPanel = document.getElementById('jijiButtonsPanel');
+        btnPanel.style.display = 'flex';
+        btnPanel.innerHTML = '';
+
+        const row = document.createElement('div');
+        row.className = 'sub-filter-row';
+        row.innerHTML = `<div class="sub-filter-label">📍 集集詳細櫃位篩選</div>`;
+
+        // 「全部集集」按鈕
+        const allBtn = document.createElement('button');
+        allBtn.className = 'sub-cat-btn' + (selectedJijiDetail === null ? ' active' : '');
+        allBtn.innerText = '全部集集';
+        allBtn.onclick = () => {
+            selectedJijiDetail = null;
+            renderJijiButtons();
+            applyFilters(true);
+        };
+        row.appendChild(allBtn);
+
+        // 各個詳細位置按鈕 (來源於全域選項)
+        globalJijiOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'sub-cat-btn' + (selectedJijiDetail === opt ? ' active' : '');
+            btn.innerText = opt;
+            btn.onclick = () => {
+                selectedJijiDetail = (selectedJijiDetail === opt) ? null : opt;
+                renderJijiButtons();
+                applyFilters(true);
+            };
+            row.appendChild(btn);
+        });
+
+        btnPanel.appendChild(row);
     }
 
     async function checkAndSave(mode) {
@@ -508,7 +576,6 @@
             finalVolume += ` (共 ${sets} 套)`;
         }
 
-        // 整合「書籍位置」與「集集詳細位置」
         let platformInput = document.getElementById('ePlatform').value;
         let jijiDetail = document.getElementById('jijiDetailSelect').value;
         let finalPlatform = platformInput;
@@ -565,14 +632,12 @@
         document.getElementById('language').value = book.language;
         document.getElementById('format').value = book.format.join(', ');
         
-        // 載入書籍位置並自動選取對應詳細位置
         let rawPlatform = book.ePlatform || '';
         let matchedDetail = rawPlatform.match(/集集\(([^)]+)\)/);
         if (matchedDetail) {
             document.getElementById('ePlatform').value = rawPlatform.replace(/集集\([^)]+\)/, '集集');
             document.getElementById('jijiDetailZone').style.display = 'block';
             
-            // 若該選項在下拉選單內尚不存在，動態補上以防選取丟失
             const sel = document.getElementById('jijiDetailSelect');
             const exists = Array.from(sel.options).some(opt => opt.value === matchedDetail[1]);
             if (!exists) {
@@ -703,7 +768,23 @@
         if (!currentFilter.key && !searchTerm && !starTerm && !locationTerm && !relationTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
         
         if (starTerm) filtered = filtered.filter(b => b.rating.toString() === starTerm);
-        if (locationTerm) filtered = filtered.filter(b => b.ePlatform.split(/[，,]/).map(s=>s.trim()).includes(locationTerm));
+        
+        // 書籍地點篩選：支援集集詳細位置按鈕連動
+        if (locationTerm) {
+            filtered = filtered.filter(b => {
+                const locs = b.ePlatform.split(/[，,]/).map(s => s.trim());
+                if (locationTerm === '集集') {
+                    // 若有選取特定詳細位置按鈕，精確比對「集集(特定位置)」
+                    if (selectedJijiDetail) {
+                        return locs.some(loc => loc === `集集(${selectedJijiDetail})`);
+                    }
+                    // 若未選取按鈕（全部集集），符合所有集集書目
+                    return locs.some(loc => loc.startsWith('集集'));
+                }
+                return locs.includes(locationTerm);
+            });
+        }
+
         if (relationTerm) filtered = filtered.filter(b => b.relationId === relationTerm);
         
         if (currentFilter.key === '類型') filtered = filtered.filter(b => b.bookCategory.split(/[，,]/).map(s=>s.trim()).includes(currentFilter.value));
@@ -802,8 +883,39 @@
         renderPagination();
     }
 
-    function clearFilter() { currentFilter = { key: null, value: null }; secondFilter = null; document.getElementById('searchInput').value = ''; document.getElementById('ratingFilter').value = ""; document.getElementById('locationFilter').value = ""; document.getElementById('relationFilter').value = ""; document.getElementById('contentSection').style.display = 'none'; updateCategoryButtons(); updateSubFilterButtons(); updateStats(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    function setFilter(key, value) { if (key === '作者') { document.getElementById('searchInput').value = value; applyFilters(true); return; } if (key === 'SHOW_ALL') { clearFilter(); applyFilters(true); return; } currentFilter = { key, value }; secondFilter = null; currentPage = 1; applyFilters(true); }
+    function clearFilter() { 
+        currentFilter = { key: null, value: null }; 
+        secondFilter = null; 
+        selectedJijiDetail = null;
+        document.getElementById('searchInput').value = ''; 
+        document.getElementById('ratingFilter').value = ""; 
+        document.getElementById('locationFilter').value = ""; 
+        document.getElementById('relationFilter').value = ""; 
+        document.getElementById('jijiButtonsPanel').style.display = 'none';
+        document.getElementById('jijiButtonsPanel').innerHTML = '';
+        document.getElementById('contentSection').style.display = 'none'; 
+        updateCategoryButtons(); 
+        updateSubFilterButtons(); 
+        updateStats(); 
+        window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    }
+
+    function setFilter(key, value) { 
+        if (key === '作者') { 
+            document.getElementById('searchInput').value = value; 
+            applyFilters(true); 
+            return; 
+        } 
+        if (key === 'SHOW_ALL') { 
+            clearFilter(); 
+            applyFilters(true); 
+            return; 
+        } 
+        currentFilter = { key, value }; 
+        secondFilter = null; 
+        currentPage = 1; 
+        applyFilters(true); 
+    }
     
     function updateCategoryButtons() { 
         const catsSet = new Set(); allBooks.forEach(b => b.bookCategory.split(/[，,]/).forEach(c => catsSet.add(c.trim()))); 
