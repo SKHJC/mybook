@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V20.4</title>
+    <title>📚 ㄎㄇ的購書紀錄 V20.5</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -134,7 +134,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V20.4</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V20.5</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -357,7 +357,7 @@
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyG_tQT1OYIklqFeKDn4ibkbWGGnyBRFikXDfsadc3isGtBCJwS5o2xpMCgH1eih4s/exec";
     let allBooks = [], currentFilteredGroups = [], currentPage = 1, itemsPerPage = 10;
     let currentFilter = { key: null, value: null }, secondFilter = null;
     let editingTarget = null;
@@ -681,7 +681,7 @@
             return [...set].sort();
         };
         const fill = (id, list) => { document.getElementById(id).innerHTML = list.map(v => `<option value="${v}">`).join(''); };
-        fill('authorList', getU('author')); fill('natList', getU('nationality')); fill('catList', getSplitU('bookCategory')); fill('subCatList', getSplitU('subCatList')); fill('langList', getU('language')); fill('formatList', getSplitU('format')); fill('platformList', getSplitU('ePlatform')); fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); fill('tagOptionList', getSplitU('tags')); fill('publisherList', getU('publisher')); fill('serialPlatformList', getSplitU('serialPlatform')); fill('relationIdList', getU('relationId'));
+        fill('authorList', getU('author')); fill('natList', getU('nationality')); fill('catList', getSplitU('bookCategory')); fill('subCatList', getSplitU('subCategory')); fill('langList', getU('language')); fill('formatList', getSplitU('format')); fill('platformList', getSplitU('ePlatform')); fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); fill('tagOptionList', getSplitU('tags')); fill('publisherList', getU('publisher')); fill('serialPlatformList', getSplitU('serialPlatform')); fill('relationIdList', getU('relationId'));
     }
 
     function changeSort(val) { currentSort = val; applyFilters(true); }
