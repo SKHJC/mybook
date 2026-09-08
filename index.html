@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V20.3</title>
+    <title>📚 ㄎㄇ的購書紀錄 V20.2</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -134,7 +134,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V20.3</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V20.2</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -189,17 +189,18 @@
         <div>
             <label>書籍位置 (逗號隔開) ⁂</label>
             <input type="text" id="ePlatform" list="platformList" placeholder="例：BW, 集集" oninput="handleEPlatformChange()">
-            <!-- 新增：集集專用詳細位置下拉選單 -->
+            <!-- 集集詳細位置下拉選單 -->
             <div id="jijiDetailZone" style="display: none; margin-top: 8px;">
                 <label style="color: #177245; font-size: 12px;">📍 集集詳細位置</label>
                 <select id="jijiDetailSelect" style="padding: 6px; font-size: 13px;">
                     <option value="">請選擇詳細位置...</option>
-                    <option value="房間書架">房間書架</option>
-                    <option value="房間衣櫃">房間衣櫃</option>
-                    <option value="房間置物箱">房間置物箱</option>
-                    <option value="客廳書櫃">客廳書櫃</option>
-                    <option value="書房">書房</option>
-                    <option value="其他">其他</option>
+                    <option value="鞋櫃A-1">鞋櫃A-1</option>
+                    <option value="鞋櫃A-2">鞋櫃A-2</option>
+                    <option value="鞋櫃A-3">鞋櫃A-3</option>
+                    <option value="鞋櫃B-1">鞋櫃B-1</option>
+                    <option value="鞋櫃B-2">鞋櫃B-2</option>
+                    <option value="鞋櫃B-3">鞋櫃B-3</option>
+                    <option value="鞋櫃B-4">鞋櫃B-4</option>
                 </select>
             </div>
         </div>
@@ -410,8 +411,22 @@
         document.getElementById('loading').style.display='flex';
         try {
             const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'read' }) });
-            const data = await r.json();
-            allBooks = data.map((row, index) => {
+            const res = await r.json();
+            
+            // 相容回傳陣列或含有 jijiOptions 的物件
+            const rawData = Array.isArray(res) ? res : (res.books || []);
+            
+            // 若試算表「設定」分頁有回傳選項，動態載入選單
+            if (res.jijiOptions && Array.isArray(res.jijiOptions) && res.jijiOptions.length > 0) {
+                const sel = document.getElementById('jijiDetailSelect');
+                let optHtml = '<option value="">請選擇詳細位置...</option>';
+                res.jijiOptions.forEach(opt => {
+                    optHtml += `<option value="${opt}">${opt}</option>`;
+                });
+                sel.innerHTML = optHtml;
+            }
+
+            allBooks = rawData.map((row, index) => {
                 let volStr = row[8] ? row[8].toString() : "1";
                 let unit = "集", hasPrologue = false, hasExtra = false, hasPrequel = false, hasSideStory = false;
                 if(volStr.includes('回')) unit = "回(話)";
@@ -550,13 +565,20 @@
         document.getElementById('language').value = book.language;
         document.getElementById('format').value = book.format.join(', ');
         
-        // 載入書籍位置與反解集集詳細位置
+        // 載入書籍位置並自動解析與還原集集詳細位置
         let rawPlatform = book.ePlatform || '';
         let matchedDetail = rawPlatform.match(/集集\(([^)]+)\)/);
         if (matchedDetail) {
             document.getElementById('ePlatform').value = rawPlatform.replace(/集集\([^)]+\)/, '集集');
             document.getElementById('jijiDetailZone').style.display = 'block';
-            document.getElementById('jijiDetailSelect').value = matchedDetail[1];
+            
+            const sel = document.getElementById('jijiDetailSelect');
+            const exists = Array.from(sel.options).some(opt => opt.value === matchedDetail[1]);
+            if (!exists) {
+                const newOpt = new Option(matchedDetail[1], matchedDetail[1]);
+                sel.add(newOpt);
+            }
+            sel.value = matchedDetail[1];
         } else {
             document.getElementById('ePlatform').value = rawPlatform;
             handleEPlatformChange();
@@ -658,7 +680,7 @@
             return [...set].sort();
         };
         const fill = (id, list) => { document.getElementById(id).innerHTML = list.map(v => `<option value="${v}">`).join(''); };
-        fill('authorList', getU('author')); fill('natList', getU('nationality')); fill('catList', getSplitU('bookCategory')); fill('subCatList', getSplitU('subCategory')); fill('langList', getU('language')); fill('formatList', getSplitU('format')); fill('platformList', getSplitU('ePlatform')); fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); fill('tagOptionList', getSplitU('tags')); fill('publisherList', getU('publisher')); fill('serialPlatformList', getSplitU('serialPlatform')); fill('relationIdList', getU('relationId'));
+        fill('authorList', getU('author')); fill('natList', getU('nationality')); fill('catList', getSplitU('bookCategory')); fill('subCatList', getSplitU('subCatList')); fill('langList', getU('language')); fill('formatList', getSplitU('format')); fill('platformList', getSplitU('ePlatform')); fill('workStatusList', getU('workStatus')); fill('readList', getU('readProgress')); fill('tagOptionList', getSplitU('tags')); fill('publisherList', getU('publisher')); fill('serialPlatformList', getSplitU('serialPlatform')); fill('relationIdList', getU('relationId'));
     }
 
     function changeSort(val) { currentSort = val; applyFilters(true); }
