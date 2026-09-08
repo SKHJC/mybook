@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V20.2</title>
+    <title>📚 ㄎㄇ的購書紀錄 V20.4</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -134,7 +134,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V20.2</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V20.4</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -189,7 +189,7 @@
         <div>
             <label>書籍位置 (逗號隔開) ⁂</label>
             <input type="text" id="ePlatform" list="platformList" placeholder="例：BW, 集集" oninput="handleEPlatformChange()">
-            <!-- 集集詳細位置下拉選單 -->
+            <!-- 集集專用詳細位置下拉選單 -->
             <div id="jijiDetailZone" style="display: none; margin-top: 8px;">
                 <label style="color: #177245; font-size: 12px;">📍 集集詳細位置</label>
                 <select id="jijiDetailSelect" style="padding: 6px; font-size: 13px;">
@@ -408,15 +408,15 @@
     }
 
     async function loadFromCloud() {
-        document.getElementById('loading').style.display='flex';
+        document.getElementById('loading').style.display = 'flex';
         try {
             const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'read' }) });
             const res = await r.json();
             
-            // 相容回傳陣列或含有 jijiOptions 的物件
+            // 相容原版純陣列或新版含 jijiOptions 的物件
             const rawData = Array.isArray(res) ? res : (res.books || []);
             
-            // 若試算表「設定」分頁有回傳選項，動態載入選單
+            // 如果後端有回傳試算表「設定」分頁的位置清單，動態替換選單內容
             if (res.jijiOptions && Array.isArray(res.jijiOptions) && res.jijiOptions.length > 0) {
                 const sel = document.getElementById('jijiDetailSelect');
                 let optHtml = '<option value="">請選擇詳細位置...</option>';
@@ -460,7 +460,7 @@
             });
             updateDatalists(); updateCategoryButtons(); updateStats(); updateFilterOptions();
         } catch (e) { console.error(e); }
-        document.getElementById('loading').style.display='none';
+        document.getElementById('loading').style.display = 'none';
     }
 
     function updateFilterOptions() {
@@ -485,7 +485,7 @@
     async function checkAndSave(mode) {
         const titleVal = document.getElementById('title').value;
         if (!titleVal) { alert("書名為必填！"); return; }
-        document.getElementById('loading').style.display='flex';
+        document.getElementById('loading').style.display = 'flex';
         
         let selectedTypes = [];
         document.querySelectorAll('input[name="typeCheck"]:checked').forEach(cb => selectedTypes.push(cb.value));
@@ -533,7 +533,7 @@
             resetForm(); await loadFromCloud();
             document.getElementById('searchInput').value = titleVal; applyFilters(true);
         } catch (e) { alert("操作失敗"); }
-        document.getElementById('loading').style.display='none';
+        document.getElementById('loading').style.display = 'none';
     }
 
     function editBook(t, l, f) {
@@ -565,13 +565,14 @@
         document.getElementById('language').value = book.language;
         document.getElementById('format').value = book.format.join(', ');
         
-        // 載入書籍位置並自動解析與還原集集詳細位置
+        // 載入書籍位置並自動選取對應詳細位置
         let rawPlatform = book.ePlatform || '';
         let matchedDetail = rawPlatform.match(/集集\(([^)]+)\)/);
         if (matchedDetail) {
             document.getElementById('ePlatform').value = rawPlatform.replace(/集集\([^)]+\)/, '集集');
             document.getElementById('jijiDetailZone').style.display = 'block';
             
+            // 若該選項在下拉選單內尚不存在，動態補上以防選取丟失
             const sel = document.getElementById('jijiDetailSelect');
             const exists = Array.from(sel.options).some(opt => opt.value === matchedDetail[1]);
             if (!exists) {
@@ -858,7 +859,7 @@
         zone.style.display = cb.checked ? 'flex' : 'none';
     }
     
-    async function deleteBook(t, l, f) { if (!confirm(`確定刪除？`)) return; document.getElementById('loading').style.display='flex'; try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', title: t, language: l, format: f }) }); await loadFromCloud(); } catch (e) { alert("刪除失敗"); } document.getElementById('loading').style.display='none'; }
+    async function deleteBook(t, l, f) { if (!confirm(`確定刪除？`)) return; document.getElementById('loading').style.display = 'flex'; try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', title: t, language: l, format: f }) }); await loadFromCloud(); } catch (e) { alert("刪除失敗"); } document.getElementById('loading').style.display = 'none'; }
     loadFromCloud();
 </script>
 
