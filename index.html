@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V20.6</title>
+    <title>📚 ㄎㄇ的購書紀錄 V20.7</title>
     
     <style>
         /* --- 核心排版：最大化寬度與最小留白 --- */
@@ -72,9 +72,13 @@
         .sub-cat-btn { background: #e9ecef; color: #495057; padding: 6px 16px; border-radius: 20px; font-size: 14px; cursor: pointer; border: 1px solid #dee2e6; transition: 0.2s; }
         .sub-cat-btn.active { background: #17a2b8; color: #fff; border-color: #17a2b8; }
         
+        /* 搜尋列 UI：加入清除按鈕配置 */
         .search-area { display: flex; gap: 10px; margin-bottom: 20px; position: relative; }
-        #searchInput { flex: 1; padding: 12px 20px; border-radius: 25px; border: 2px solid #007bff; font-size: 16px; }
-        .search-trigger-btn { background: #007bff; color: white; border: none; width: 50px; height: 46px; border-radius: 23px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; }
+        .search-input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
+        #searchInput { width: 100%; padding: 12px 45px 12px 20px; border-radius: 25px; border: 2px solid #007bff; font-size: 16px; box-sizing: border-box; }
+        .search-clear-btn { position: absolute; right: 15px; background: #ccc; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: 0.2s; line-height: 1; }
+        .search-clear-btn:hover { background: #dc3545; }
+        .search-trigger-btn { background: #007bff; color: white; border: none; width: 50px; height: 46px; border-radius: 23px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; flex-shrink: 0; }
 
         .tag-pill { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin-right: 5px; margin-bottom: 5px; cursor: pointer; border: none; transition: 0.1s; vertical-align: middle; }
         .pill-publisher { background: #019858 !important; color: white !important; }
@@ -134,7 +138,7 @@
 <div id="loading" class="loading-overlay">⚙️ 正在處理中...</div>
 
 <div class="container">
-    <h1>📚 ㄎㄇ的購書紀錄 V20.6</h1>
+    <h1>📚 ㄎㄇ的購書紀錄 V20.7</h1>
 
     <div class="form-group" id="inputForm">
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
@@ -322,14 +326,18 @@
             </select>
         </div>
         
-        <!-- 新增：集集專用詳細位置按鈕區域 -->
+        <!-- 集集專用詳細位置按鈕區域 -->
         <div id="jijiButtonsPanel" class="sub-filter-container"></div>
 
         <div id="subFilterPanel" class="sub-filter-container"></div>
     </div>
 
+    <!-- 搜尋列：包覆 input 與清除按鈕 -->
     <div class="search-area">
-        <input type="text" id="searchInput" placeholder="🔍 輸入關鍵字後點擊右側按鈕搜尋..." onkeypress="if(event.key==='Enter') applyFilters(true)">
+        <div class="search-input-wrapper">
+            <input type="text" id="searchInput" placeholder="🔍 輸入關鍵字後點擊右側按鈕搜尋..." oninput="handleSearchInput(this)" onkeydown="if(event.key==='Enter') applyFilters(true); else if(event.key==='Escape') clearSearch();">
+            <button id="searchClearBtn" class="search-clear-btn" onclick="clearSearch()" title="清除搜尋內容">✖</button>
+        </div>
         <button class="search-trigger-btn" onclick="applyFilters(true)">🔍</button>
     </div>
 
@@ -368,9 +376,23 @@
     let isSyncMode = false;
     let currentSort = 'newToOld';
     
-    // 全域儲存集集詳細位置選項清單與目前選取的按鈕
     let globalJijiOptions = ['鞋櫃A-1', '鞋櫃A-2', '鞋櫃A-3', '鞋櫃B-1', '鞋櫃B-2', '鞋櫃B-3', '鞋櫃B-4'];
     let selectedJijiDetail = null;
+
+    // 監聽搜尋框輸入：控制「✖」清除按鈕顯示
+    function handleSearchInput(el) {
+        const clearBtn = document.getElementById('searchClearBtn');
+        clearBtn.style.display = el.value.trim() !== '' ? 'flex' : 'none';
+    }
+
+    // 清除搜尋框並恢復未搜尋狀態
+    function clearSearch() {
+        const input = document.getElementById('searchInput');
+        input.value = '';
+        document.getElementById('searchClearBtn').style.display = 'none';
+        applyFilters(true);
+        input.focus();
+    }
 
     // 處理集集詳細位置選單的顯示與隱藏
     function handleEPlatformChange() {
@@ -423,7 +445,6 @@
             
             const rawData = Array.isArray(res) ? res : (res.books || []);
             
-            // 如果後端回傳自「設定」分頁的選項，更新全域清單與編輯選單
             if (res.jijiOptions && Array.isArray(res.jijiOptions) && res.jijiOptions.length > 0) {
                 globalJijiOptions = res.jijiOptions;
                 const sel = document.getElementById('jijiDetailSelect');
@@ -480,7 +501,6 @@
             if(b.ePlatform) {
                 b.ePlatform.split(/[，,]/).forEach(loc => {
                     let cleanLoc = loc.trim();
-                    // 下拉選單將「集集(...)」統一正規化成「集集」呈現
                     if (cleanLoc.startsWith('集集')) cleanLoc = '集集';
                     if (cleanLoc) locations.add(cleanLoc);
                 });
@@ -497,13 +517,12 @@
         relFilter.innerHTML = relHtml;
     }
 
-    // 地點下拉選單變更事件：處理「集集」展開詳細按鈕
     function handleLocationFilterChange() {
         const locVal = document.getElementById('locationFilter').value;
         const btnPanel = document.getElementById('jijiButtonsPanel');
         
         if (locVal === '集集') {
-            selectedJijiDetail = null; // 重設詳細位置篩選
+            selectedJijiDetail = null;
             renderJijiButtons();
         } else {
             selectedJijiDetail = null;
@@ -513,7 +532,6 @@
         applyFilters(true);
     }
 
-    // 渲染集集詳細位置按鈕
     function renderJijiButtons() {
         const btnPanel = document.getElementById('jijiButtonsPanel');
         btnPanel.style.display = 'flex';
@@ -523,7 +541,6 @@
         row.className = 'sub-filter-row';
         row.innerHTML = `<div class="sub-filter-label">📍 集集詳細櫃位篩選</div>`;
 
-        // 「全部集集」按鈕
         const allBtn = document.createElement('button');
         allBtn.className = 'sub-cat-btn' + (selectedJijiDetail === null ? ' active' : '');
         allBtn.innerText = '全部集集';
@@ -534,7 +551,6 @@
         };
         row.appendChild(allBtn);
 
-        // 各個詳細位置按鈕 (來源於全域選項)
         globalJijiOptions.forEach(opt => {
             const btn = document.createElement('button');
             btn.className = 'sub-cat-btn' + (selectedJijiDetail === opt ? ' active' : '');
@@ -598,7 +614,9 @@
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
             alert(mode === 'update' ? "更新成功！" : "儲存成功！");
             resetForm(); await loadFromCloud();
-            document.getElementById('searchInput').value = titleVal; applyFilters(true);
+            document.getElementById('searchInput').value = titleVal;
+            document.getElementById('searchClearBtn').style.display = 'flex';
+            applyFilters(true);
         } catch (e) { alert("操作失敗"); }
         document.getElementById('loading').style.display = 'none';
     }
@@ -765,20 +783,21 @@
         else if (currentSort === 'oldToNew') { filtered.sort((a, b) => a.id - b.id); } 
         else { filtered.sort((a, b) => b.id - a.id); }
 
-        if (!currentFilter.key && !searchTerm && !starTerm && !locationTerm && !relationTerm && !isManual) { document.getElementById('contentSection').style.display = 'none'; updateStats(); return; }
+        if (!currentFilter.key && !searchTerm && !starTerm && !locationTerm && !relationTerm && !isManual) { 
+            document.getElementById('contentSection').style.display = 'none'; 
+            updateStats(); 
+            return; 
+        }
         
         if (starTerm) filtered = filtered.filter(b => b.rating.toString() === starTerm);
         
-        // 書籍地點篩選：支援集集詳細位置按鈕連動
         if (locationTerm) {
             filtered = filtered.filter(b => {
                 const locs = b.ePlatform.split(/[，,]/).map(s => s.trim());
                 if (locationTerm === '集集') {
-                    // 若有選取特定詳細位置按鈕，精確比對「集集(特定位置)」
                     if (selectedJijiDetail) {
                         return locs.some(loc => loc === `集集(${selectedJijiDetail})`);
                     }
-                    // 若未選取按鈕（全部集集），符合所有集集書目
                     return locs.some(loc => loc.startsWith('集集'));
                 }
                 return locs.includes(locationTerm);
@@ -888,6 +907,7 @@
         secondFilter = null; 
         selectedJijiDetail = null;
         document.getElementById('searchInput').value = ''; 
+        document.getElementById('searchClearBtn').style.display = 'none';
         document.getElementById('ratingFilter').value = ""; 
         document.getElementById('locationFilter').value = ""; 
         document.getElementById('relationFilter').value = ""; 
@@ -903,6 +923,7 @@
     function setFilter(key, value) { 
         if (key === '作者') { 
             document.getElementById('searchInput').value = value; 
+            document.getElementById('searchClearBtn').style.display = 'flex';
             applyFilters(true); 
             return; 
         } 
